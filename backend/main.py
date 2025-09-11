@@ -98,6 +98,57 @@ def health():
         "max_upload_mb": MAX_UPLOAD_MB
     }
 
+@app.get("/api/debug")
+def debug_config():
+    """Endpoint de debug para verificar configuração"""
+    openai_key = os.getenv("OPENAI_API_KEY")
+    
+    debug_info = {
+        "timestamp": time.time(),
+        "openai_key_present": bool(openai_key),
+        "openai_key_length": len(openai_key) if openai_key else 0,
+        "openai_key_preview": openai_key[:8] + "..." + openai_key[-4:] if openai_key and len(openai_key) > 12 else "N/A",
+        "environment_vars": {
+            "OPENAI_MODEL": os.getenv("OPENAI_MODEL", "not_set"),
+            "MAX_UPLOAD_MB": os.getenv("MAX_UPLOAD_MB", "not_set"),
+        }
+    }
+    
+    # Testar cliente OpenAI
+    try:
+        from config import get_openai_client, validate_openai_config, DEFAULT_MODEL
+        
+        debug_info["config_module"] = "loaded"
+        debug_info["default_model"] = DEFAULT_MODEL
+        
+        # Tentar validar configuração
+        validate_openai_config()
+        debug_info["openai_validation"] = "success"
+        
+        # Tentar obter cliente
+        client = get_openai_client()
+        debug_info["openai_client"] = "created" if client else "failed"
+        
+        if client:
+            # Testar uma requisição simples
+            try:
+                response = client.chat.completions.create(
+                    model=DEFAULT_MODEL,
+                    messages=[{"role": "user", "content": "Test"}],
+                    max_tokens=5,
+                    timeout=10
+                )
+                debug_info["openai_test"] = "success"
+                debug_info["test_response"] = response.choices[0].message.content[:50] if response.choices else "no_response"
+            except Exception as e:
+                debug_info["openai_test"] = f"failed: {str(e)}"
+        
+    except Exception as e:
+        debug_info["config_error"] = str(e)
+        debug_info["config_traceback"] = traceback.format_exc()
+    
+    return JSONResponse(debug_info)
+
 @app.post("/api/translate")
 async def translate(
     background_tasks: BackgroundTasks,
@@ -126,14 +177,56 @@ async def translate(
     
     # Testar configuração do OpenAI
     try:
-        from config import validate_openai_config
+        from config import validate_openai_config, get_openai_client, DEFAULT_MODEL
+        
+        logger.info(f"Tentando validar configuração OpenAI...")
+        logger.info(f"Modelo padrão: {DEFAULT_MODEL}")
+        
+        # Primeira validação - chave presente
         validate_openai_config()
-        logger.info("Configuração OpenAI validada com sucesso")
+        logger.info("✅ Validação inicial OpenAI passou")
+        
+        # Segunda validação - cliente funcional
+        client = get_openai_client()
+        if not client:
+            raise ValueError("Cliente OpenAI não foi inicializado corretamente")
+        
+        logger.info("✅ Cliente OpenAI criado com sucesso")
+        
+        # Terceira validação - teste de conectividade
+        test_response = client.chat.completions.create(
+            model=DEFAULT_MODEL,
+            messages=[{"role": "user", "content": "Test"}],
+            max_tokens=5,
+            timeout=15
+        )
+        
+        logger.info("✅ Teste de conectividade OpenAI passou")
+        logger.info("Configuração OpenAI totalmente validada")
+        
     except Exception as e:
-        logger.error(f"Erro na validação OpenAI: {e}")
+        error_msg = str(e)
+        logger.error(f"❌ Erro na validação OpenAI: {error_msg}")
+        logger.error(f"Tipo do erro: {type(e).__name__}")
+        logger.error(f"Traceback: {traceback.format_exc()}")
+        
+        # Mensagens de erro mais específicas
+        if "OPENAI_API_KEY" in error_msg:
+            detail = "Chave da OpenAI não configurada ou inválida. Verifique a variável OPENAI_API_KEY."
+        elif "timeout" in error_msg.lower():
+            detail = f"Timeout na conexão com OpenAI. Verifique sua conexão. Erro: {error_msg}"
+        elif "rate_limit" in error_msg.lower():
+            detail = f"Limite de taxa da OpenAI excedido. Aguarde alguns minutos. Erro: {error_msg}"
+        elif "authentication" in error_msg.lower() or "invalid" in error_msg.lower():
+            detail = f"Chave OpenAI inválida ou sem permissões adequadas. Erro: {error_msg}"
+        elif "model" in error_msg.lower():
+            detail = f"Modelo {DEFAULT_MODEL} não disponível ou sem acesso. Erro: {error_msg}"
+        else:
+            detail = f"Erro na configuração OpenAI: {error_msg}"
+        
         raise HTTPException(
             status_code=500,
-            detail=f"Erro na configuração OpenAI: {str(e)}"
+            detail=detail
         )
     
     model = PROFILE_MAP.get(perfil, PROFILE_MAP["normal"])

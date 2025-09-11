@@ -45,8 +45,53 @@ LOGS_DIR.mkdir(parents=True, exist_ok=True)
 DATA_DIR = Path("data")
 DATA_DIR.mkdir(parents=True, exist_ok=True)
 
-# Cache de downloads
-DOWNLOAD_LINKS: Dict[str, Dict] = {}
+# Cache de downloads com persistência
+DOWNLOADS_FILE = DATA_DIR / "download_tokens.json"
+
+def load_download_links() -> Dict[str, Dict]:
+    """Carrega tokens de download do arquivo"""
+    try:
+        if DOWNLOADS_FILE.exists():
+            with open(DOWNLOADS_FILE, 'r', encoding='utf-8') as f:
+                return json.load(f)
+    except Exception as e:
+        logger.warning(f"Erro ao carregar tokens: {e}")
+    return {}
+
+def save_download_links(links: Dict[str, Dict]):
+    """Salva tokens de download no arquivo"""
+    try:
+        with open(DOWNLOADS_FILE, 'w', encoding='utf-8') as f:
+            json.dump(links, f, indent=2, ensure_ascii=False)
+    except Exception as e:
+        logger.error(f"Erro ao salvar tokens: {e}")
+
+def get_download_links() -> Dict[str, Dict]:
+    """Obtém tokens válidos, removendo expirados"""
+    links = load_download_links()
+    current_time = time.time()
+    
+    # Remove tokens expirados
+    expired = [token for token, info in links.items() if current_time > info.get("expire", 0)]
+    for token in expired:
+        try:
+            if os.path.exists(links[token].get("path", "")):
+                os.remove(links[token]["path"])
+        except Exception:
+            pass
+        links.pop(token, None)
+    
+    if expired:
+        save_download_links(links)
+        logger.info(f"Removidos {len(expired)} tokens expirados")
+    
+    return links
+
+def add_download_token(token: str, info: Dict):
+    """Adiciona novo token de download"""
+    links = get_download_links()
+    links[token] = info
+    save_download_links(links)
 
 # App
 app = FastAPI(
@@ -282,7 +327,7 @@ async def translate(
         
         # Token de download
         token = uuid.uuid4().hex
-        DOWNLOAD_LINKS[token] = {
+        add_download_token(token, {
             "path": str(zip_path),
             "expire": time.time() + 2 * 60 * 60,  # 2 horas
             "files_count": len(outputs),
@@ -290,7 +335,7 @@ async def translate(
             "source_lang": idioma_origem,
             "target_lang": idioma_destino,
             "created_at": time.time()
-        }
+        })
         
         # Limpeza
         background_tasks.add_task(cleanup_old_files)
@@ -319,7 +364,9 @@ async def translate(
 @app.get("/api/download/{token}")
 def download(token: str):
     """Download de arquivos traduzidos"""
-    info = DOWNLOAD_LINKS.get(token)
+    links = get_download_links()
+    info = links.get(token)
+    
     if not info:
         raise HTTPException(status_code=404, detail="Link inválido ou expirado")
     
@@ -328,8 +375,14 @@ def download(token: str):
             os.remove(info["path"])
         except Exception:
             pass
-        DOWNLOAD_LINKS.pop(token, None)
+        links.pop(token, None)
+        save_download_links(links)
         raise HTTPException(status_code=410, detail="Link expirado")
+    
+    if not os.path.exists(info["path"]):
+        links.pop(token, None)
+        save_download_links(links)
+        raise HTTPException(status_code=404, detail="Arquivo não encontrado")
     
     logger.info(f"Download iniciado: {token}")
     
@@ -342,7 +395,9 @@ def download(token: str):
 @app.get("/api/status/{token}")
 def get_status(token: str):
     """Status de um token"""
-    info = DOWNLOAD_LINKS.get(token)
+    links = get_download_links()
+    info = links.get(token)
+    
     if not info:
         return JSONResponse({"status": "not_found"})
     

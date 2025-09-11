@@ -1,76 +1,57 @@
 import { useState, useCallback } from 'react';
 import { useDropzone } from 'react-dropzone';
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { FileText, Upload, X, CheckCircle, AlertCircle } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Upload, FileText, X, CheckCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { supabase, isSupabaseConfigured } from "@/integrations/supabase/client";
 
 interface DocumentUploadProps {
-  onUploadComplete: (fileUrl: string, fileName: string) => void;
+  onUploadComplete: (files: FileList) => void;
   disabled?: boolean;
 }
 
+interface UploadedFile {
+  name: string;
+  size: number;
+  type: string;
+}
+
 export const DocumentUpload = ({ onUploadComplete, disabled }: DocumentUploadProps) => {
-  const [uploadProgress, setUploadProgress] = useState(0);
+  const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
   const [isUploading, setIsUploading] = useState(false);
-  const [uploadedFile, setUploadedFile] = useState<{ name: string; size: number } | null>(null);
+  const [uploadProgress, setUploadProgress] = useState(0);
   const { toast } = useToast();
 
-  const onDrop = useCallback(async (acceptedFiles: File[]) => {
-    const file = acceptedFiles[0];
-    if (!file) return;
+  const onDrop = useCallback(async (acceptedFiles: File[], fileRejections: any[]) => {
+    // Handle rejected files
+    if (fileRejections.length > 0) {
+      const rejectedReasons = fileRejections.map(rejection => 
+        rejection.errors.map((error: any) => {
+          if (error.code === 'file-too-large') {
+            return `${rejection.file.name}: Arquivo muito grande (máximo 300MB)`;
+          }
+          if (error.code === 'file-invalid-type') {
+            return `${rejection.file.name}: Tipo de arquivo não suportado`;
+          }
+          return `${rejection.file.name}: ${error.message}`;
+        }).join(', ')
+      ).join('; ');
 
-    // Validate file type
-    if (!file.name.toLowerCase().endsWith('.docx')) {
       toast({
-        title: "Arquivo inválido",
-        description: "Por favor, selecione apenas arquivos .docx",
+        title: "Arquivos rejeitados",
+        description: rejectedReasons,
         variant: "destructive",
       });
-      return;
     }
 
-    // Check if Supabase is configured
-    if (!isSupabaseConfigured() || !supabase) {
-      toast({
-        title: "Configuração necessária",
-        description: "Conecte-se ao Supabase para fazer upload de arquivos.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    // Validate file size (300MB limit)
-    const maxSize = 300 * 1024 * 1024; // 300MB
-    if (file.size > maxSize) {
-      toast({
-        title: "Arquivo muito grande",
-        description: "O arquivo deve ter no máximo 300MB",
-        variant: "destructive",
-      });
-      return;
-    }
+    if (acceptedFiles.length === 0) return;
 
     setIsUploading(true);
     setUploadProgress(0);
 
     try {
-      // Create unique filename
-      const timestamp = Date.now();
-      const fileName = `${timestamp}_${file.name}`;
-
-      // Upload to Supabase storage
-      const { data, error } = await supabase.storage
-        .from('documents')
-        .upload(`originals/${fileName}`, file, {
-          cacheControl: '3600',
-          upsert: false
-        });
-
-      if (error) throw error;
-
       // Simulate progress for better UX
       const progressInterval = setInterval(() => {
         setUploadProgress(prev => {
@@ -83,24 +64,38 @@ export const DocumentUpload = ({ onUploadComplete, disabled }: DocumentUploadPro
         });
       }, 100);
 
-      // Get public URL
-      const { data: urlData } = supabase.storage
-        .from('documents')
-        .getPublicUrl(`originals/${fileName}`);
+      // Process uploaded files
+      const fileInfos: UploadedFile[] = acceptedFiles.map(file => ({
+        name: file.name,
+        size: file.size,
+        type: file.type
+      }));
 
-      setUploadedFile({ name: file.name, size: file.size });
-      onUploadComplete(urlData.publicUrl, file.name);
+      setUploadedFiles(fileInfos);
+
+      // Create FileList from accepted files
+      const fileList = acceptedFiles.reduce((acc, file, index) => {
+        Object.defineProperty(acc, index, {
+          value: file,
+          enumerable: true
+        });
+        return acc;
+      }, Object.create(FileList.prototype, {
+        length: { value: acceptedFiles.length }
+      }));
+
+      onUploadComplete(fileList);
 
       toast({
         title: "Upload concluído!",
-        description: "Arquivo enviado com sucesso.",
+        description: `${acceptedFiles.length} arquivo(s) carregado(s) com sucesso.`,
       });
 
     } catch (error) {
       console.error('Upload error:', error);
       toast({
         title: "Erro no upload",
-        description: "Falha ao enviar o arquivo. Tente novamente.",
+        description: "Falha ao fazer upload dos arquivos. Tente novamente.",
         variant: "destructive",
       });
     } finally {
@@ -112,108 +107,138 @@ export const DocumentUpload = ({ onUploadComplete, disabled }: DocumentUploadPro
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
     accept: {
-      'application/vnd.openxmlformats-officedocument.wordprocessingml.document': ['.docx']
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document': ['.docx'],
+      'application/vnd.openxmlformats-officedocument.presentationml.presentation': ['.pptx'],
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': ['.xlsx']
     },
-    multiple: false,
-    disabled: disabled || isUploading
+    maxSize: 300 * 1024 * 1024, // 300MB
+    disabled: disabled || isUploading,
+    multiple: true
   });
 
-  const clearFile = () => {
-    setUploadedFile(null);
-    setUploadProgress(0);
+  const formatFileSize = (bytes: number) => {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   };
 
-  if (uploadedFile) {
-    return (
-      <Card className="bg-gradient-card backdrop-blur-sm border-border/50 shadow-card">
-        <CardContent className="p-6">
-          <div className="flex items-center gap-4">
-            <div className="p-3 bg-green-500/20 rounded-lg">
-              <CheckCircle className="h-6 w-6 text-green-500" />
-            </div>
-            <div className="flex-1">
-              <h3 className="font-semibold text-green-500">Arquivo carregado</h3>
-              <p className="text-sm text-muted-foreground">{uploadedFile.name}</p>
-              <p className="text-xs text-muted-foreground">
-                {(uploadedFile.size / (1024 * 1024)).toFixed(2)} MB
-              </p>
-            </div>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={clearFile}
-              className="text-muted-foreground hover:text-foreground"
-            >
-              <X className="h-4 w-4" />
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-    );
-  }
+  const removeFile = (index: number) => {
+    const newFiles = uploadedFiles.filter((_, i) => i !== index);
+    setUploadedFiles(newFiles);
+    if (newFiles.length === 0) {
+      onUploadComplete(Object.create(FileList.prototype, { length: { value: 0 } }));
+    }
+  };
+
+  const clearAll = () => {
+    setUploadedFiles([]);
+    onUploadComplete(Object.create(FileList.prototype, { length: { value: 0 } }));
+  };
 
   return (
     <Card className="bg-gradient-card backdrop-blur-sm border-border/50 shadow-card">
-      <CardContent className="p-6">
+      <CardHeader>
+        <CardTitle className="text-lg flex items-center gap-2">
+          <Upload className="h-5 w-5" />
+          Upload de Documentos
+          <Badge variant="secondary" className="ml-auto">
+            DOCX • PPTX • XLSX
+          </Badge>
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {/* Upload Area */}
         <div
           {...getRootProps()}
           className={`
-            border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-smooth
-            ${isDragActive ? 'border-primary bg-primary/5' : 'border-border/50 hover:border-primary/50'}
-            ${disabled || isUploading ? 'opacity-50 cursor-not-allowed' : ''}
+            border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors
+            ${isDragActive 
+              ? 'border-primary bg-primary/10' 
+              : 'border-border/50 hover:border-primary/50 hover:bg-accent/50'
+            }
+            ${disabled || isUploading ? 'cursor-not-allowed opacity-50' : ''}
           `}
         >
           <input {...getInputProps()} />
           
-          {isUploading ? (
-            <div className="space-y-4">
-              <div className="flex justify-center">
-                <div className="p-4 bg-primary/20 rounded-full">
-                  <Upload className="h-8 w-8 text-primary animate-bounce" />
-                </div>
-              </div>
-              <div>
-                <h3 className="text-lg font-semibold mb-2">Enviando arquivo...</h3>
-                <Progress value={uploadProgress} className="w-full max-w-md mx-auto" />
-                <p className="text-sm text-muted-foreground mt-2">
-                  {uploadProgress.toFixed(1)}% concluído
-                </p>
-              </div>
+          <div className="flex flex-col items-center gap-4">
+            <div className="p-4 bg-primary/10 rounded-full">
+              <FileText className="h-8 w-8 text-primary" />
             </div>
-          ) : (
-            <div className="space-y-4">
-              <div className="flex justify-center">
-                <div className="p-4 bg-primary/20 rounded-full">
-                  <FileText className="h-8 w-8 text-primary" />
-                </div>
-              </div>
-              
-              <div>
-                <h3 className="text-lg font-semibold mb-2">
-                  {isDragActive ? 'Solte o arquivo aqui' : 'Envie seu documento DOCX'}
-                </h3>
-                <p className="text-muted-foreground mb-4">
-                  Arraste e solte ou clique para selecionar um arquivo DOCX
-                </p>
-                <div className="flex items-center justify-center gap-4 text-sm text-muted-foreground">
-                  <div className="flex items-center gap-1">
-                    <FileText className="h-4 w-4" />
-                    .docx apenas
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <AlertCircle className="h-4 w-4" />
-                    Até 300MB
-                  </div>
-                </div>
-              </div>
-
-              <Button variant="outline" className="mt-4">
+            
+            <div>
+              <p className="text-lg font-semibold mb-2">
+                {isDragActive 
+                  ? "Solte os arquivos aqui..." 
+                  : "Arraste arquivos ou clique para selecionar"
+                }
+              </p>
+              <p className="text-sm text-muted-foreground">
+                Suporte para DOCX, PPTX e XLSX • Máximo 300MB por arquivo
+              </p>
+            </div>
+            
+            {!isDragActive && !disabled && !isUploading && (
+              <Button variant="outline" className="mt-2">
                 <Upload className="mr-2 h-4 w-4" />
-                Selecionar Arquivo
+                Selecionar Arquivos
+              </Button>
+            )}
+          </div>
+        </div>
+
+        {/* Upload Progress */}
+        {isUploading && (
+          <div className="space-y-2">
+            <div className="flex justify-between text-sm">
+              <span>Fazendo upload...</span>
+              <span>{uploadProgress}%</span>
+            </div>
+            <Progress value={uploadProgress} className="w-full" />
+          </div>
+        )}
+
+        {/* Uploaded Files List */}
+        {uploadedFiles.length > 0 && (
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <h4 className="font-semibold">Arquivos Carregados ({uploadedFiles.length})</h4>
+              <Button variant="ghost" size="sm" onClick={clearAll}>
+                Limpar Tudo
               </Button>
             </div>
-          )}
-        </div>
+            
+            <div className="space-y-2 max-h-48 overflow-y-auto">
+              {uploadedFiles.map((file, index) => (
+                <div
+                  key={index}
+                  className="flex items-center justify-between p-3 bg-background/50 rounded-lg border border-border/50"
+                >
+                  <div className="flex items-center gap-3">
+                    <CheckCircle className="h-5 w-5 text-green-500" />
+                    <div>
+                      <p className="font-medium text-sm">{file.name}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {formatFileSize(file.size)}
+                      </p>
+                    </div>
+                  </div>
+                  
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => removeFile(index)}
+                    className="h-8 w-8 p-0"
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </CardContent>
     </Card>
   );

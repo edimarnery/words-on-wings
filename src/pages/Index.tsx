@@ -7,7 +7,6 @@ import { LanguageSelector } from "@/components/LanguageSelector";
 import { TranslateBox } from "@/components/TranslateBox";
 import { TranslationHistory, Translation } from "@/components/TranslationHistory";
 import { DocumentTranslator } from "@/components/DocumentTranslator";
-import { SupabaseStatus } from "@/components/SupabaseStatus";
 import { useTranslate } from "@/hooks/useTranslate";
 import heroImage from "@/assets/hero-translation.jpg";
 
@@ -65,7 +64,7 @@ const Index = () => {
             Tradutor Universal
           </h1>
           <p className="text-xl text-primary-foreground/80 mb-8 max-w-2xl mx-auto">
-            Traduza textos e documentos DOCX mantendo formatação original. Powered by OpenAI GPT-4
+            Traduza textos e documentos DOCX/PPTX/XLSX mantendo formatação original. Powered by OpenAI GPT-4
           </p>
           <div className="flex items-center justify-center gap-6 text-primary-foreground/70 flex-wrap">
             <div className="flex items-center gap-2">
@@ -74,7 +73,7 @@ const Index = () => {
             </div>
             <div className="flex items-center gap-2">
               <FileText className="h-4 w-4" />
-              <span>Documentos DOCX</span>
+              <span>DOCX • PPTX • XLSX</span>
             </div>
             <div className="flex items-center gap-2">
               <MessageSquare className="h-4 w-4" />
@@ -86,11 +85,6 @@ const Index = () => {
 
       {/* Main Content */}
       <div className="container mx-auto px-4 py-12">
-        {/* Configuration Status */}
-        <div className="mb-8">
-          <SupabaseStatus />
-        </div>
-
         <Tabs defaultValue="text" className="w-full">
           <TabsList className="grid w-full grid-cols-2 max-w-md mx-auto mb-8 bg-card/50 backdrop-blur-sm">
             <TabsTrigger value="text" className="flex items-center gap-2">

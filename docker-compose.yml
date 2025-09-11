@@ -1,14 +1,31 @@
 version: '3.8'
 
 services:
-  translator-app:
+  # Frontend React
+  frontend:
     build: .
     ports:
       - "3000:80"
     environment:
       - NODE_ENV=production
     restart: unless-stopped
+    depends_on:
+      - backend
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.translator.rule=Host(`tradutor.seudominio.com`)"
       - "traefik.http.services.translator.loadbalancer.server.port=80"
+
+  # Backend Python
+  backend:
+    build: ./backend
+    ports:
+      - "8000:8000"
+    environment:
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - MAX_UPLOAD_MB=300
+      - OPENAI_MODEL=gpt-4o
+    volumes:
+      - ./backend/data:/app/data
+      - ./backend/logs:/app/logs
+    restart: unless-stopped

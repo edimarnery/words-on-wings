@@ -1,7 +1,7 @@
 #!/bin/bash
 
-# Script de deploy para VPS Hostinger
-echo "🚀 Iniciando deploy do Tradutor Universal..."
+# Script de deploy para VPS - Versão Independente
+echo "🚀 Iniciando deploy do Tradutor Universal (Versão Independente)..."
 
 # Verificar se Docker está instalado
 if ! command -v docker &> /dev/null; then
@@ -24,11 +24,20 @@ fi
 # Verificar se o arquivo .env existe
 if [ ! -f .env ]; then
     echo "❌ Arquivo .env não encontrado!"
-    echo "📝 Crie o arquivo .env com suas configurações do Supabase:"
+    echo "📝 Crie o arquivo .env com sua chave OpenAI:"
     echo ""
-    echo "VITE_SUPABASE_URL=https://sua-url.supabase.co"
-    echo "VITE_SUPABASE_ANON_KEY=sua-chave-anonima"
+    echo "OPENAI_API_KEY=sua-chave-openai-aqui"
+    echo "MAX_UPLOAD_MB=300"
+    echo "OPENAI_MODEL=gpt-4o"
     echo ""
+    exit 1
+fi
+
+# Verificar se a chave OpenAI está configurada
+if ! grep -q "OPENAI_API_KEY=" .env || grep -q "OPENAI_API_KEY=$" .env; then
+    echo "❌ Chave OpenAI não configurada no arquivo .env!"
+    echo "📝 Configure sua chave OpenAI no arquivo .env:"
+    echo "OPENAI_API_KEY=sua-chave-openai-aqui"
     exit 1
 fi
 
@@ -40,7 +49,14 @@ echo "🚀 Iniciando aplicação..."
 docker-compose up -d
 
 echo "✅ Deploy concluído!"
-echo "🌐 Aplicação rodando em: http://localhost:3000"
+echo "🌐 Frontend: http://localhost:3000"
+echo "🔗 API Backend: http://localhost:8000"
 echo "📊 Para ver logs: docker-compose logs -f"
 echo "🔄 Para reiniciar: docker-compose restart"
 echo "🛑 Para parar: docker-compose down"
+echo ""
+echo "🎯 Funcionalidades disponíveis:"
+echo "   ✅ Upload de DOCX, PPTX, XLSX até 300MB"
+echo "   ✅ Tradução com OpenAI GPT-4"
+echo "   ✅ Preservação de formatação original"
+echo "   ✅ Interface moderna e responsiva"

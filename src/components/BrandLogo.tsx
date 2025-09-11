@@ -26,7 +26,7 @@ export const BrandLogo: React.FC<BrandLogoProps> = ({
   return (
     <div className={`flex items-center gap-2 ${className}`}>
       <img 
-        src="/lovable-uploads/87544ea1-fb63-45c9-9dd4-8c9aea846985.png" 
+        src="/lovable-uploads/fcc990f6-15a8-4800-9cbc-15bd387871b8.png" 
         alt="Brazil Translations Logo" 
         className={sizeClasses[size]}
       />

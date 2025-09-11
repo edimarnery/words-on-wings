@@ -58,7 +58,7 @@ export const DocumentTranslator = () => {
         <div className="flex items-center justify-center gap-2">
           <div className="p-3 bg-gradient-primary rounded-full">
             <img 
-              src="/lovable-uploads/87544ea1-fb63-45c9-9dd4-8c9aea846985.png" 
+              src="/lovable-uploads/fcc990f6-15a8-4800-9cbc-15bd387871b8.png" 
               alt="Brazil Translations Logo" 
               className="h-8 w-8"
             />

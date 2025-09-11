@@ -13,7 +13,7 @@ const NotFound = () => {
       <div className="text-center bg-white/90 backdrop-blur-sm rounded-2xl shadow-xl border border-white/50 p-12">
         <div className="flex justify-center mb-6">
           <img 
-            src="/lovable-uploads/87544ea1-fb63-45c9-9dd4-8c9aea846985.png" 
+            src="/lovable-uploads/fcc990f6-15a8-4800-9cbc-15bd387871b8.png" 
             alt="Brazil Translations Logo" 
             className="h-16 w-16"
           />

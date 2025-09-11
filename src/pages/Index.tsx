@@ -59,7 +59,7 @@ const Index = () => {
           <div className="flex justify-center mb-8">
             <div className="p-6 bg-white/10 rounded-full backdrop-blur-sm">
               <img 
-                src="/lovable-uploads/87544ea1-fb63-45c9-9dd4-8c9aea846985.png" 
+                src="/lovable-uploads/fcc990f6-15a8-4800-9cbc-15bd387871b8.png" 
                 alt="Brazil Translations Logo" 
                 className="h-24 w-24"
               />
@@ -211,7 +211,7 @@ const Index = () => {
         <div className="container mx-auto px-4 text-center">
           <div className="flex items-center justify-center gap-3 mb-4">
             <img 
-              src="/lovable-uploads/87544ea1-fb63-45c9-9dd4-8c9aea846985.png" 
+              src="/lovable-uploads/fcc990f6-15a8-4800-9cbc-15bd387871b8.png" 
               alt="Brazil Translations Logo" 
               className="h-8 w-8"
             />

@@ -72,12 +72,25 @@ export const useDocumentTranslate = () => {
         body: formData,
       });
 
+      console.log('Response status:', response.status);
+      console.log('Response headers:', Object.fromEntries(response.headers.entries()));
+
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
+        const errorText = await response.text();
+        console.error('Response error text:', errorText);
+        
+        let errorData;
+        try {
+          errorData = JSON.parse(errorText);
+        } catch {
+          errorData = { detail: errorText || `Erro ${response.status}: ${response.statusText}` };
+        }
+        
         throw new Error(errorData.detail || `Erro ${response.status}: ${response.statusText}`);
       }
 
       const data = await response.json();
+      console.log('Translation response:', data);
 
       if (data.success) {
         const job: TranslationJob = {
@@ -104,10 +117,28 @@ export const useDocumentTranslate = () => {
         throw new Error(data.message || 'Falha na tradução');
       }
     } catch (error) {
-      console.error('Translation error:', error);
+      console.error('Translation error details:', error);
+      
+      let errorMessage = "Falha ao traduzir o documento. Tente novamente.";
+      
+      if (error instanceof Error) {
+        errorMessage = error.message;
+        
+        // Mensagens mais específicas baseadas no erro
+        if (error.message.includes('OPENAI_API_KEY')) {
+          errorMessage = "Configuração da API OpenAI não encontrada. Verifique as configurações do servidor.";
+        } else if (error.message.includes('timeout')) {
+          errorMessage = "Tempo limite excedido. Tente com um arquivo menor ou novamente mais tarde.";
+        } else if (error.message.includes('413')) {
+          errorMessage = "Arquivo muito grande. O limite é de 300MB.";
+        } else if (error.message.includes('400')) {
+          errorMessage = "Formato de arquivo não suportado. Use apenas DOCX, PPTX ou XLSX.";
+        }
+      }
+      
       toast({
         title: "Erro na tradução",
-        description: error instanceof Error ? error.message : "Falha ao traduzir o documento. Tente novamente.",
+        description: errorMessage,
         variant: "destructive",
       });
       return false;

@@ -125,6 +125,9 @@ export const DocumentTranslator = () => {
               <>
                 <Loader2 className="mr-2 h-5 w-5 animate-spin" />
                 Traduzindo documento...
+                <div className="ml-2 text-xs opacity-80">
+                  Isso pode levar alguns minutos
+                </div>
               </>
             ) : (
               <>

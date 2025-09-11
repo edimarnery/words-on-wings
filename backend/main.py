@@ -22,8 +22,8 @@ logger = logging.getLogger(__name__)
 # Configurações da aplicação
 MAX_UPLOAD_MB = int(os.getenv("MAX_UPLOAD_MB", "300"))
 PROFILE_MAP = {
-    "normal": os.getenv("MODEL_NORMAL", os.getenv("OPENAI_MODEL", "gpt-4o")),
-    "rapido": os.getenv("MODEL_RAPIDO", "gpt-4o-mini"),
+    "normal": os.getenv("MODEL_NORMAL", os.getenv("OPENAI_MODEL", "gpt-4.1-2025-04-14")),
+    "rapido": os.getenv("MODEL_RAPIDO", "gpt-5-mini-2025-08-07"),
 }
 
 # Diretórios
@@ -113,12 +113,28 @@ async def translate(
     if not files:
         raise HTTPException(status_code=400, detail="Nenhum arquivo enviado.")
     
-    # Verificar se OpenAI API key está configurada
-    if not os.getenv("OPENAI_API_KEY"):
-        raise HTTPException(
-            status_code=500, 
-            detail="Chave da OpenAI não configurada. Configure OPENAI_API_KEY."
-        )
+        # Verificar se OpenAI API key está configurada
+        openai_key = os.getenv("OPENAI_API_KEY")
+        if not openai_key:
+            logger.error("OPENAI_API_KEY não configurada")
+            raise HTTPException(
+                status_code=500, 
+                detail="Chave da OpenAI não configurada. Configure OPENAI_API_KEY."
+            )
+        
+        logger.info(f"OpenAI API Key configurada: {'*' * (len(openai_key) - 8) + openai_key[-8:] if len(openai_key) > 8 else '***'}")
+        
+        # Testar configuração do OpenAI
+        try:
+            from config import validate_openai_config
+            validate_openai_config()
+            logger.info("Configuração OpenAI validada com sucesso")
+        except Exception as e:
+            logger.error(f"Erro na validação OpenAI: {e}")
+            raise HTTPException(
+                status_code=500,
+                detail=f"Erro na configuração OpenAI: {str(e)}"
+            )
     
     model = PROFILE_MAP.get(perfil, PROFILE_MAP["normal"])
     usar_ia = True
@@ -185,19 +201,48 @@ async def translate(
             
             # Traduzir arquivo
             logger.info(f"Iniciando tradução profissional: {inp} -> {outp}")
-            translation_result = translate_file_professional(
-                str(inp), 
-                str(outp), 
-                gloss_path, 
-                usar_ia, 
-                idioma_origem, 
-                idioma_destino, 
-                model=model
-            )
+            logger.info(f"Parâmetros: origem={idioma_origem}, destino={idioma_destino}, modelo={model}")
+            
+            try:
+                translation_result = translate_file_professional(
+                    str(inp), 
+                    str(outp), 
+                    gloss_path, 
+                    usar_ia, 
+                    idioma_origem, 
+                    idioma_destino, 
+                    model=model
+                )
+                
+                logger.info(f"Resultado da tradução: success={translation_result.success}")
+                logger.info(f"Elementos: {translation_result.translated_elements}/{translation_result.original_elements}")
+                
+                if translation_result.errors:
+                    logger.error(f"Erros encontrados: {translation_result.errors}")
+                    
+                if translation_result.warnings:
+                    logger.warning(f"Avisos: {translation_result.warnings}")
+                    
+            except Exception as e:
+                logger.error(f"EXCEÇÃO durante tradução de {file.filename}: {type(e).__name__}: {str(e)}")
+                logger.error(f"Traceback completo:", exc_info=True)
+                continue
             
             if not translation_result.success:
                 logger.error(f"Tradução falhou para {file.filename}: {translation_result.errors}")
-                continue
+                # Se falhar, retornar erro para o frontend
+                raise HTTPException(
+                    status_code=500,
+                    detail=f"Falha na tradução de {file.filename}: {'; '.join(translation_result.errors)}"
+                )
+                
+            # Verificar se arquivo de saída foi criado
+            if not os.path.exists(outp):
+                logger.error(f"Arquivo de saída não foi criado: {outp}")
+                raise HTTPException(
+                    status_code=500,
+                    detail=f"Arquivo traduzido não foi criado para {file.filename}"
+                )
             
             outputs.append(str(outp))
             processed_files.append({
@@ -210,6 +255,16 @@ async def translate(
                 "warnings": translation_result.warnings
             })
             logger.info(f"Tradução concluída: {translation_result.translated_elements}/{translation_result.original_elements} elementos em {translation_result.processing_time:.2f}s")
+        
+        # Verificar se pelo menos um arquivo foi processado
+        if not outputs:
+            logger.error("Nenhum arquivo foi processado com sucesso")
+            raise HTTPException(
+                status_code=500,
+                detail="Nenhum arquivo pôde ser traduzido. Verifique os logs para mais detalhes."
+            )
+            
+        logger.info(f"Processamento concluído: {len(outputs)} arquivo(s) traduzido(s)")
         
         # Criar arquivo ZIP com os resultados
         zip_path = workdir / "documentos_traduzidos.zip"

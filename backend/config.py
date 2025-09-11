@@ -7,7 +7,7 @@ import os
 from openai import OpenAI
 
 # Configurações principais
-DEFAULT_MODEL = os.getenv("OPENAI_MODEL", "gpt-4o")
+DEFAULT_MODEL = os.getenv("OPENAI_MODEL", "gpt-4.1-2025-04-14")
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
 MAX_UPLOAD_MB = int(os.getenv("MAX_UPLOAD_MB", "300"))
 

@@ -178,9 +178,12 @@ class ProfessionalTranslator:
     def translate_with_context(self, text: str, context: str, source_lang: str, target_lang: str, model: str = None) -> str:
         """Traduz texto com contexto para maior precisão"""
         if not self.client or not text.strip():
+            logger.warning(f"Cliente não disponível ou texto vazio. Cliente: {self.client is not None}, Texto: '{text[:50]}...'")
             return text
             
         try:
+            logger.info(f"Iniciando tradução: {len(text)} caracteres, modelo: {model or DEFAULT_MODEL}")
+            
             prompt = f"""Você é um tradutor profissional especializado em documentos técnicos e oficiais.
 
 CONTEXTO DO DOCUMENTO: {context}
@@ -210,14 +213,16 @@ TRADUÇÃO:"""
                 ],
                 temperature=0.1,
                 max_tokens=4000,
-                timeout=60
+                timeout=120  # Timeout mais longo
             )
             
             translation = response.choices[0].message.content.strip()
+            logger.info(f"Tradução concluída: {len(translation)} caracteres")
             return translation
             
         except Exception as e:
-            logger.error(f"Erro na tradução: {e}")
+            logger.error(f"ERRO CRÍTICO na tradução: {type(e).__name__}: {str(e)}")
+            logger.error(f"Texto que causou erro: '{text[:100]}...'")
             # Em caso de erro, retornar texto original para não quebrar o documento
             return text
     

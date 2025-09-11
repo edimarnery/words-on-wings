@@ -5,11 +5,16 @@ Configurações centralizadas - Versão 2.0 Limpa
 
 import os
 import logging
+import openai as openai_pkg
+import httpx as httpx_pkg
 from openai import OpenAI
 
 # Configurar logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+# Log das versões no startup
+logger.info(f"openai={getattr(openai_pkg,'__version__','?')} httpx={getattr(httpx_pkg,'__version__','?')}")
 
 # Configurações principais
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
@@ -26,7 +31,23 @@ def get_openai_client():
     if _openai_client is None and OPENAI_API_KEY:
         try:
             logger.info("Inicializando cliente OpenAI...")
-            _openai_client = OpenAI(api_key=OPENAI_API_KEY)
+            
+            # Configuração limpa sem proxies
+            config = {
+                "api_key": OPENAI_API_KEY
+            }
+            
+            # Se precisar de proxy, usar http_client em vez de proxies
+            proxy = os.environ.get("HTTPS_PROXY") or os.environ.get("HTTP_PROXY")
+            if proxy:
+                http_client = httpx.Client(proxies=proxy, timeout=60.0)
+                config["http_client"] = http_client
+            
+            # Filtrar apenas argumentos permitidos
+            ALLOWED_KWARGS = {"api_key", "organization", "project", "base_url", "http_client"}
+            clean_config = {k: v for k, v in config.items() if k in ALLOWED_KWARGS}
+            
+            _openai_client = OpenAI(**clean_config)
             logger.info("✅ Cliente OpenAI inicializado")
         except Exception as e:
             logger.error(f"❌ Erro ao inicializar OpenAI: {e}")

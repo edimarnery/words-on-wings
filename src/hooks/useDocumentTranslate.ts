@@ -24,8 +24,8 @@ interface TranslationJob {
 }
 
 const API_BASE = process.env.NODE_ENV === 'production' 
-  ? '/api' 
-  : 'http://localhost:8000/api';
+  ? 'http://ia.encnetwork.com.br:8001/api' 
+  : 'http://localhost:8001/api';
 
 export const useDocumentTranslate = () => {
   const [isTranslating, setIsTranslating] = useState(false);

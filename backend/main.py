@@ -45,9 +45,14 @@ app = FastAPI(
 # Configurar CORS para React
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Em produção, especificar domínios
+    allow_origins=[
+        "http://ia.encnetwork.com.br:3000",
+        "https://ia.encnetwork.com.br:3000", 
+        "http://localhost:3000",
+        "http://localhost:5173"
+    ],
     allow_credentials=True,
-    allow_methods=["*"],
+    allow_methods=["GET", "POST"],
     allow_headers=["*"],
 )
 

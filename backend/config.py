@@ -20,14 +20,27 @@ def get_openai_client():
     
     if _openai_client is None and OPENAI_API_KEY:
         try:
-            # Inicialização limpa sem parâmetros extras
-            _openai_client = OpenAI(
-                api_key=OPENAI_API_KEY,
-                timeout=60.0  # timeout padrão
-            )
+            # Limpar qualquer variável de ambiente que possa interferir
+            import os
+            env_backup = {}
+            problematic_vars = ['HTTP_PROXY', 'HTTPS_PROXY', 'http_proxy', 'https_proxy']
+            
+            for var in problematic_vars:
+                if var in os.environ:
+                    env_backup[var] = os.environ[var]
+                    del os.environ[var]
+            
+            # Inicialização mais simples possível
+            _openai_client = OpenAI(api_key=OPENAI_API_KEY)
             print("Cliente OpenAI inicializado com sucesso")
+            
+            # Restaurar variáveis de ambiente
+            for var, value in env_backup.items():
+                os.environ[var] = value
+                
         except Exception as e:
             print(f"Erro ao inicializar cliente OpenAI: {e}")
+            print(f"Tipo do erro: {type(e).__name__}")
             _openai_client = None
     
     return _openai_client

@@ -45,18 +45,23 @@ const Index = () => {
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
       {/* Hero Section */}
       <section 
-        className="relative py-20 px-4 text-center bg-cover bg-center bg-no-repeat"
-        style={{ 
-          backgroundImage: `linear-gradient(rgba(59, 130, 246, 0.8), rgba(37, 99, 235, 0.8)), url(${heroImage})` 
-        }}
+        className="relative py-20 px-4 text-center bg-gradient-to-br from-blue-600 via-blue-500 to-cyan-400 overflow-hidden"
       >
-        <div className="container mx-auto">
-          <div className="flex justify-center mb-6">
-            <div className="p-4 bg-white/10 rounded-full backdrop-blur-sm">
+        {/* Geometric Background Elements */}
+        <div className="absolute inset-0">
+          <div className="absolute top-1/4 right-0 w-96 h-96 bg-blue-400/20 rounded-full transform translate-x-1/2 -translate-y-1/4"></div>
+          <div className="absolute bottom-0 left-0 w-80 h-80 bg-cyan-300/15 rounded-full transform -translate-x-1/2 translate-y-1/2"></div>
+          <div className="absolute top-1/2 left-1/4 w-64 h-64 bg-blue-300/10 transform rotate-45 rounded-3xl"></div>
+          <div className="absolute bottom-1/4 right-1/3 w-48 h-48 bg-white/5 rounded-full"></div>
+        </div>
+        
+        <div className="container mx-auto relative z-10">
+          <div className="flex justify-center mb-8">
+            <div className="p-6 bg-white/10 rounded-full backdrop-blur-sm">
               <img 
                 src="/lovable-uploads/14fb849f-db96-4ad5-9dae-81898934e0bd.png" 
                 alt="Brazil Translations Logo" 
-                className="h-16 w-16"
+                className="h-24 w-24"
               />
             </div>
           </div>

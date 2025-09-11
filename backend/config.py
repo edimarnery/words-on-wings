@@ -5,6 +5,10 @@ Configurações centralizadas para o tradutor
 
 import os
 from openai import OpenAI
+try:
+    import httpx
+except ImportError:
+    httpx = None
 
 # Configurações principais
 DEFAULT_MODEL = os.getenv("OPENAI_MODEL", "gpt-4.1-2025-04-14")
@@ -15,28 +19,35 @@ MAX_UPLOAD_MB = int(os.getenv("MAX_UPLOAD_MB", "300"))
 _openai_client = None
 
 def get_openai_client():
-    """Retorna instância única do cliente OpenAI"""
+    """Retorna instância única do cliente OpenAI (SDK v1.x)"""
     global _openai_client
     
     if _openai_client is None and OPENAI_API_KEY:
         try:
-            # Limpar qualquer variável de ambiente que possa interferir
-            import os
-            env_backup = {}
-            problematic_vars = ['HTTP_PROXY', 'HTTPS_PROXY', 'http_proxy', 'https_proxy']
+            # Verificar se há configuração de proxy
+            proxy_url = os.getenv("HTTPS_PROXY") or os.getenv("HTTP_PROXY")
             
-            for var in problematic_vars:
-                if var in os.environ:
-                    env_backup[var] = os.environ[var]
-                    del os.environ[var]
+            # Configurar cliente HTTP se há proxy e httpx disponível
+            http_client = None
+            if proxy_url and httpx:
+                print(f"Configurando proxy: {proxy_url}")
+                http_client = httpx.Client(
+                    proxies=proxy_url,
+                    timeout=60.0
+                )
+            elif proxy_url:
+                print("Proxy detectado mas httpx não disponível. Usando configuração padrão.")
             
-            # Inicialização mais simples possível
-            _openai_client = OpenAI(api_key=OPENAI_API_KEY)
+            # Inicialização limpa seguindo SDK v1.x
+            if http_client:
+                _openai_client = OpenAI(
+                    api_key=OPENAI_API_KEY,
+                    http_client=http_client
+                )
+            else:
+                _openai_client = OpenAI(api_key=OPENAI_API_KEY)
+            
             print("Cliente OpenAI inicializado com sucesso")
-            
-            # Restaurar variáveis de ambiente
-            for var, value in env_backup.items():
-                os.environ[var] = value
                 
         except Exception as e:
             print(f"Erro ao inicializar cliente OpenAI: {e}")

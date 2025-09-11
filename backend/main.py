@@ -156,11 +156,11 @@ def validate_file_type(file_content: bytes, filename: str) -> bool:
         return ext in ['.docx', '.pptx', '.xlsx']
 
 def cleanup_old_files():
-    """Remove arquivos antigos"""
+    """Remove arquivos antigos (6 horas)"""
     try:
         current_time = time.time()
         for job_dir in DATA_DIR.glob("job_*"):
-            if job_dir.is_dir() and current_time - job_dir.stat().st_mtime > 4 * 3600:
+            if job_dir.is_dir() and current_time - job_dir.stat().st_mtime > 6 * 3600:  # 6 horas
                 shutil.rmtree(job_dir, ignore_errors=True)
                 logger.info(f"Removido: {job_dir}")
     except Exception as e:

@@ -1,34 +1,30 @@
-import { useState } from 'react';
-import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowRight, ArrowLeftRight, Languages, Sparkles, FileText, MessageSquare } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { ArrowLeftRight, Sparkles, Languages, FileText, Zap, Shield } from "lucide-react";
+import { useTranslate } from "@/hooks/useTranslate";
 import { LanguageSelector } from "@/components/LanguageSelector";
 import { TranslateBox } from "@/components/TranslateBox";
 import { TranslationHistory, Translation } from "@/components/TranslationHistory";
 import { DocumentTranslator } from "@/components/DocumentTranslator";
-import { useTranslate } from "@/hooks/useTranslate";
-import heroImage from "@/assets/hero-translation.jpg";
+import Header from "@/components/Header";
 
 const Index = () => {
-  const [sourceText, setSourceText] = useState('');
-  const [translatedText, setTranslatedText] = useState('');
-  const [sourceLang, setSourceLang] = useState('auto');
-  const [targetLang, setTargetLang] = useState('en');
-  
+  const [sourceText, setSourceText] = useState("");
+  const [translatedText, setTranslatedText] = useState("");
+  const [sourceLang, setSourceLang] = useState("pt");
+  const [targetLang, setTargetLang] = useState("en");
+
   const { translateText, isLoading, translations, clearHistory } = useTranslate();
 
   const handleTranslate = async () => {
     if (!sourceText.trim()) return;
     
-    const finalSourceLang = sourceLang === 'auto' ? 'pt' : sourceLang;
-    const result = await translateText(sourceText, finalSourceLang, targetLang);
+    const result = await translateText(sourceText, sourceLang, targetLang);
     setTranslatedText(result);
   };
 
   const handleSwapLanguages = () => {
-    if (sourceLang === 'auto') return;
-    
     setSourceLang(targetLang);
     setTargetLang(sourceLang);
     setSourceText(translatedText);
@@ -43,180 +39,184 @@ const Index = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-secondary">
+    <div className="min-h-screen bg-background">
+      <Header />
+
       {/* Hero Section */}
-      <div className="relative overflow-hidden bg-gradient-primary">
-        <div 
-          className="absolute inset-0 opacity-20"
-          style={{
-            backgroundImage: `url(${heroImage})`,
-            backgroundSize: 'cover',
-            backgroundPosition: 'center',
-          }}
-        />
-        <div className="relative container mx-auto px-4 py-16 text-center">
-          <div className="flex justify-center mb-6">
-            <div className="p-4 bg-background/10 rounded-full backdrop-blur-sm">
-              <Languages className="h-12 w-12 text-primary-foreground" />
+      <section className="relative overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-r from-primary via-primary/90 to-blue-500" />
+        <div className="absolute inset-0 bg-gradient-to-br from-primary/10 to-blue-500/10" />
+        
+        <div className="relative container mx-auto px-4 py-20">
+          <div className="text-center text-primary-foreground">
+            <div className="mb-8">
+              <img 
+                src="/lovable-uploads/b05c9eb2-7b42-4a8e-be97-9d1ebfb3a5a5.png" 
+                alt="Brazil Translations Logo" 
+                className="h-20 mx-auto mb-6"
+              />
             </div>
-          </div>
-          <h1 className="text-4xl md:text-6xl font-bold text-primary-foreground mb-4">
-            Tradutor Universal
-          </h1>
-          <p className="text-xl text-primary-foreground/80 mb-8 max-w-2xl mx-auto">
-            Traduza textos e documentos DOCX/PPTX/XLSX mantendo formatação original. Powered by OpenAI GPT-4
-          </p>
-          <div className="flex items-center justify-center gap-6 text-primary-foreground/70 flex-wrap">
-            <div className="flex items-center gap-2">
-              <Sparkles className="h-4 w-4" />
-              <span>OpenAI GPT-4</span>
+            
+            <h1 className="text-5xl md:text-6xl font-bold mb-6">
+              Sua mensagem em
+            </h1>
+            
+            <div className="text-4xl md:text-5xl font-bold mb-8 text-accent">
+              QUALQUER IDIOMA
             </div>
-            <div className="flex items-center gap-2">
-              <FileText className="h-4 w-4" />
-              <span>DOCX • PPTX • XLSX</span>
+            
+            <p className="text-xl md:text-2xl mb-8 max-w-4xl mx-auto text-primary-foreground/90">
+              Há 20 anos conectando o mundo através de traduções precisas e inovadoras. 
+              Na Brazil Translations, tecnologia e expertise se unem para transformar suas necessidades em soluções globais.
+            </p>
+
+            {/* Feature badges */}
+            <div className="flex flex-wrap justify-center gap-4 mb-12">
+              <div className="flex items-center gap-2 bg-white/10 backdrop-blur-sm rounded-full px-4 py-2">
+                <Sparkles className="w-5 h-5 text-accent" />
+                <span>IA Avançada</span>
+              </div>
+              <div className="flex items-center gap-2 bg-white/10 backdrop-blur-sm rounded-full px-4 py-2">
+                <Languages className="w-5 h-5 text-accent" />
+                <span>+100 Idiomas</span>
+              </div>
+              <div className="flex items-center gap-2 bg-white/10 backdrop-blur-sm rounded-full px-4 py-2">
+                <FileText className="w-5 h-5 text-accent" />
+                <span>Documentos</span>
+              </div>
+              <div className="flex items-center gap-2 bg-white/10 backdrop-blur-sm rounded-full px-4 py-2">
+                <Zap className="w-5 h-5 text-accent" />
+                <span>Instantâneo</span>
+              </div>
+              <div className="flex items-center gap-2 bg-white/10 backdrop-blur-sm rounded-full px-4 py-2">
+                <Shield className="w-5 h-5 text-accent" />
+                <span>Seguro</span>
+              </div>
             </div>
-            <div className="flex items-center gap-2">
-              <MessageSquare className="h-4 w-4" />
-              <span>Texto em tempo real</span>
+
+            <div className="text-sm text-primary-foreground/80 mb-8">
+              Somos uma empresa certificada ISO 9001, ISO 17100 e ISO 27001
             </div>
           </div>
         </div>
-      </div>
+      </section>
 
-      {/* Main Content */}
-      <div className="container mx-auto px-4 py-12">
-        <Tabs defaultValue="text" className="w-full">
-          <TabsList className="grid w-full grid-cols-2 max-w-md mx-auto mb-8 bg-card/50 backdrop-blur-sm">
-            <TabsTrigger value="text" className="flex items-center gap-2">
-              <MessageSquare className="h-4 w-4" />
-              Texto
-            </TabsTrigger>
-            <TabsTrigger value="document" className="flex items-center gap-2">
-              <FileText className="h-4 w-4" />
-              Documentos
-            </TabsTrigger>
-          </TabsList>
+      {/* Translation Interface */}
+      <section className="py-16 bg-muted/30">
+        <div className="container mx-auto px-4">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl font-bold text-primary mb-4">
+              TRADUÇÃO E INTERPRETAÇÃO DE QUALIDADE
+            </h2>
+            <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+              Traduza textos e documentos com precisão profissional usando nossa tecnologia avançada
+            </p>
+          </div>
 
-          <TabsContent value="text">
-            <div className="grid lg:grid-cols-3 gap-8">
-              {/* Text Translation Interface */}
-              <div className="lg:col-span-2 space-y-6">
-            {/* Language Selectors */}
-            <Card className="bg-gradient-card backdrop-blur-sm border-border/50 shadow-card">
-              <CardContent className="p-6">
-                <div className="flex items-center gap-4 flex-wrap">
-                  <LanguageSelector 
-                    value={sourceLang} 
-                    onChange={setSourceLang}
-                    showAutoDetect={true}
-                  />
-                  
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={handleSwapLanguages}
-                    disabled={sourceLang === 'auto'}
-                    className="bg-background/50 hover:bg-background/70 transition-smooth"
-                  >
-                    <ArrowLeftRight className="h-4 w-4" />
-                  </Button>
-                  
-                  <LanguageSelector 
-                    value={targetLang} 
-                    onChange={setTargetLang}
-                  />
-                </div>
-              </CardContent>
-            </Card>
+          <div className="max-w-6xl mx-auto">
+            <Tabs defaultValue="text" className="w-full">
+              <TabsList className="grid w-full grid-cols-2 mb-8 bg-white shadow-sm">
+                <TabsTrigger value="text" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+                  Tradução de Texto
+                </TabsTrigger>
+                <TabsTrigger value="document" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+                  Tradução de Documentos
+                </TabsTrigger>
+              </TabsList>
 
-            {/* Translation Boxes */}
-            <div className="grid md:grid-cols-2 gap-6">
-              {/* Source Text */}
-              <Card className="bg-gradient-card backdrop-blur-sm border-border/50 shadow-card">
-                <CardContent className="p-6">
-                  <div className="flex items-center gap-2 mb-4">
-                    <div className="w-3 h-3 bg-primary rounded-full"></div>
-                    <h3 className="font-semibold">Texto original</h3>
+              <TabsContent value="text" className="space-y-6">
+                <div className="bg-white rounded-2xl shadow-brand p-8">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                    <LanguageSelector
+                      value={sourceLang}
+                      onChange={setSourceLang}
+                    />
+                    <div className="flex items-center justify-center">
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        onClick={handleSwapLanguages}
+                        className="rounded-full border-primary/20 hover:bg-primary hover:text-primary-foreground"
+                      >
+                        <ArrowLeftRight className="w-5 h-5" />
+                      </Button>
+                    </div>
+                    <LanguageSelector
+                      value={targetLang}
+                      onChange={setTargetLang}
+                    />
                   </div>
-                  <TranslateBox
-                    value={sourceText}
-                    onChange={setSourceText}
-                    placeholder="Digite o texto que deseja traduzir..."
-                    showSpeakButton={true}
-                  />
-                </CardContent>
-              </Card>
 
-              {/* Translated Text */}
-              <Card className="bg-gradient-card backdrop-blur-sm border-border/50 shadow-card">
-                <CardContent className="p-6">
-                  <div className="flex items-center gap-2 mb-4">
-                    <div className="w-3 h-3 bg-emerald-500 rounded-full"></div>
-                    <h3 className="font-semibold">Tradução</h3>
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+                    <TranslateBox
+                      value={sourceText}
+                      onChange={setSourceText}
+                      placeholder="Digite o texto que deseja traduzir..."
+                    />
+                    <TranslateBox
+                      value={translatedText}
+                      onChange={() => {}}
+                      placeholder="A tradução aparecerá aqui..."
+                      isReadOnly={true}
+                    />
                   </div>
-                  <TranslateBox
-                    value={translatedText}
-                    onChange={() => {}}
-                    placeholder="A tradução aparecerá aqui..."
-                    isReadOnly={true}
-                    showCopyButton={true}
-                    showSpeakButton={true}
-                  />
-                </CardContent>
-              </Card>
-            </div>
 
-            {/* Translate Button */}
-            <div className="flex justify-center">
-              <Button
-                onClick={handleTranslate}
-                disabled={!sourceText.trim() || isLoading}
-                className="bg-gradient-primary hover:opacity-90 text-primary-foreground px-8 py-6 text-lg shadow-glow transition-smooth"
-                size="lg"
-              >
-                {isLoading ? (
-                  <>
-                    <div className="animate-spin rounded-full h-5 w-5 border-2 border-primary-foreground border-t-transparent mr-2" />
-                    Traduzindo...
-                  </>
-                ) : (
-                  <>
-                    <ArrowRight className="mr-2 h-5 w-5" />
-                    Traduzir
-                  </>
-                )}
-              </Button>
+                  <div className="flex justify-center mb-8">
+                    <Button
+                      onClick={handleTranslate}
+                      disabled={!sourceText.trim() || isLoading}
+                      size="lg"
+                      className="bg-primary hover:bg-primary/90 text-primary-foreground px-12 py-3 text-lg font-medium shadow-brand"
+                    >
+                      {isLoading ? (
+                        <div className="flex items-center gap-2">
+                          <div className="w-5 h-5 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
+                          Traduzindo...
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-2">
+                          <Languages className="w-5 h-5" />
+                          Traduzir Texto
+                        </div>
+                      )}
+                    </Button>
+                  </div>
+
+                  {translations.length > 0 && (
+                    <TranslationHistory
+                      translations={translations}
+                      onSelectTranslation={handleSelectTranslation}
+                      onClearHistory={clearHistory}
+                    />
+                  )}
                 </div>
-              </div>
+              </TabsContent>
 
-              {/* Translation History */}
-              <div className="lg:col-span-1">
-                <TranslationHistory
-                  translations={translations}
-                  onClearHistory={clearHistory}
-                  onSelectTranslation={handleSelectTranslation}
-                />
-              </div>
-            </div>
-          </TabsContent>
-
-          <TabsContent value="document">
-            <div className="max-w-4xl mx-auto">
-              <DocumentTranslator />
-            </div>
-          </TabsContent>
-        </Tabs>
-      </div>
+              <TabsContent value="document">
+                <div className="bg-white rounded-2xl shadow-brand p-8">
+                  <DocumentTranslator />
+                </div>
+              </TabsContent>
+            </Tabs>
+          </div>
+        </div>
+      </section>
 
       {/* Footer */}
-      <footer className="border-t border-border/50 bg-card/30 backdrop-blur-sm">
-        <div className="container mx-auto px-4 py-8 text-center">
-          <div className="flex items-center justify-center gap-2 mb-4">
-            <Languages className="h-5 w-5 text-primary" />
-            <span className="font-semibold">Tradutor Universal</span>
+      <footer className="bg-primary text-primary-foreground py-12">
+        <div className="container mx-auto px-4 text-center">
+          <div className="mb-6">
+            <img 
+              src="/lovable-uploads/7f972b2f-537e-4f19-b7ab-6593e849de29.png" 
+              alt="Brazil Translations" 
+              className="h-12 mx-auto mb-4"
+            />
           </div>
-          <p className="text-muted-foreground text-sm">
-            Desenvolvido com React, TypeScript e Tailwind CSS. Pronto para deploy!
+          <p className="text-primary-foreground/80 mb-4">
+            Tradutor Universal - Powered by Brazil Translations
+          </p>
+          <p className="text-sm text-primary-foreground/60">
+            © 2024 Brazil Translations. Todos os direitos reservados.
           </p>
         </div>
       </footer>

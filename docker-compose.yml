@@ -1,0 +1,14 @@
+version: '3.8'
+
+services:
+  translator-app:
+    build: .
+    ports:
+      - "3000:80"
+    environment:
+      - NODE_ENV=production
+    restart: unless-stopped
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.translator.rule=Host(`tradutor.seudominio.com`)"
+      - "traefik.http.services.translator.loadbalancer.server.port=80"

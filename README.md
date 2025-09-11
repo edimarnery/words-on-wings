@@ -1,73 +1,193 @@
-# Welcome to your Lovable project
+# 🌐 Tradutor Universal - Solução Completa de Tradução
 
-## Project info
+Uma aplicação web moderna e profissional para tradução de textos e documentos DOCX usando OpenAI GPT-4, mantendo formatação original.
 
-**URL**: https://lovable.dev/projects/a5efc188-283a-4c06-a376-8a3e33a87291
+## ✨ Funcionalidades
 
-## How can I edit this code?
+### 📝 Tradução de Texto
+- Interface moderna e intuitiva
+- Tradução em tempo real entre 11+ idiomas
+- Detecção automática de idioma
+- Histórico de traduções
+- Cópia e reprodução de áudio
 
-There are several ways of editing your application.
+### 📄 Tradução de Documentos DOCX
+- Upload de arquivos até 300MB
+- **Preserva formatação original** (fontes, layout, estilos)
+- Tradução profissional com OpenAI GPT-4
+- Download direto do documento traduzido
+- Interface drag-and-drop
 
-**Use Lovable**
+## 🚀 Tecnologias Utilizadas
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/a5efc188-283a-4c06-a376-8a3e33a87291) and start prompting.
+- **Frontend**: React 18 + TypeScript + Tailwind CSS
+- **Backend**: Supabase (Edge Functions + Storage + Database)
+- **IA**: OpenAI GPT-4 para tradução premium
+- **Deploy**: Docker + Nginx
+- **UI**: shadcn/ui + Radix UI
 
-Changes made via Lovable will be committed automatically to this repo.
+## 🏗️ Arquitetura
 
-**Use your preferred IDE**
+```
+┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
+│   Frontend      │    │   Supabase      │    │   OpenAI API    │
+│   React App     │◄──►│   Edge Function │◄──►│   GPT-4 Model   │
+│                 │    │   Storage       │    │                 │
+└─────────────────┘    └─────────────────┘    └─────────────────┘
+```
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+## 📦 Instalação Local
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+1. **Clone o repositório**
+```bash
+git clone [seu-repositorio]
+cd tradutor-universal
+```
 
-Follow these steps:
+2. **Instale as dependências**
+```bash
+npm install
+```
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+3. **Configure as variáveis de ambiente**
+```bash
+# Crie um arquivo .env
+VITE_SUPABASE_URL=sua_url_do_supabase
+VITE_SUPABASE_ANON_KEY=sua_chave_anonima_do_supabase
+```
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
+4. **Execute em desenvolvimento**
+```bash
 npm run dev
 ```
 
-**Edit a file directly in GitHub**
+## 🔧 Deploy na VPS
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+### Pré-requisitos
+- VPS com Docker instalado
+- Domínio configurado
+- Projeto Supabase ativo
+- Chave API OpenAI
 
-**Use GitHub Codespaces**
+### Deploy Completo
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+1. **Configure o Supabase**
+   - Crie o bucket `documents` no Storage
+   - Deploy da Edge Function `translate-document`
+   - Configure a secret `OPENAI_API_KEY`
 
-## What technologies are used for this project?
+2. **Deploy com Docker**
+```bash
+# Na sua VPS
+git clone [seu-repositorio]
+cd tradutor-universal
 
-This project is built with:
+# Configure .env
+nano .env
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+# Deploy
+docker-compose up -d --build
+```
 
-## How can I deploy this project?
+3. **Acesse via http://seu-ip:3000**
 
-Simply open [Lovable](https://lovable.dev/projects/a5efc188-283a-4c06-a376-8a3e33a87291) and click on Share -> Publish.
+## 📋 Configuração do Supabase
 
-## Can I connect a custom domain to my Lovable project?
+### 1. Storage Bucket
+```sql
+-- Criar bucket para documentos
+INSERT INTO storage.buckets (id, name, public) 
+VALUES ('documents', 'documents', true);
+```
 
-Yes, you can!
+### 2. Edge Function
+```bash
+# Deploy da function
+supabase functions deploy translate-document
+```
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+### 3. Database Schema
+```sql
+-- Tabela para histórico de traduções
+CREATE TABLE document_translations (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    user_id UUID REFERENCES auth.users(id),
+    original_file_name TEXT NOT NULL,
+    translated_file_name TEXT NOT NULL,
+    source_language TEXT NOT NULL,
+    target_language TEXT NOT NULL,
+    original_file_url TEXT NOT NULL,
+    translated_file_url TEXT NOT NULL,
+    status TEXT DEFAULT 'pending',
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+```
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
+## 💰 Custos Operacionais
+
+- **VPS Hostinger**: R$ 20-50/mês
+- **Supabase**: Gratuito (até 500MB)
+- **OpenAI GPT-4**: ~$0.03 por 1K tokens
+- **Estimativa total**: R$ 30-80/mês (dependendo do uso)
+
+## 🔐 Segurança
+
+- ✅ HTTPS/SSL configurável
+- ✅ Autenticação opcional via Supabase
+- ✅ Row Level Security (RLS)
+- ✅ API Keys protegidas no backend
+- ✅ Headers de segurança no Nginx
+
+## 📊 Performance
+
+- ✅ Build otimizado com Vite
+- ✅ Lazy loading de componentes
+- ✅ Cache de assets estáticos
+- ✅ Compressão Gzip
+- ✅ CDN via Supabase Storage
+
+## 🛠️ Comandos Úteis
+
+```bash
+# Desenvolvimento
+npm run dev
+
+# Build para produção
+npm run build
+
+# Preview do build
+npm run preview
+
+# Docker commands
+docker-compose up -d --build  # Build e start
+docker-compose logs -f        # Ver logs
+docker-compose down           # Parar tudo
+```
+
+## 📱 Responsividade
+
+- ✅ Mobile-first design
+- ✅ Breakpoints otimizados
+- ✅ Interface adaptativa
+- ✅ Touch-friendly na mobile
+
+## 🎨 Customização
+
+O sistema de design está centralizado em:
+- `src/index.css` - Tokens de design
+- `tailwind.config.ts` - Configuração do Tailwind
+- `src/components/ui/` - Componentes reutilizáveis
+
+## 📞 Suporte
+
+Para problemas técnicos:
+1. Verifique os logs: `docker-compose logs`
+2. Confirme as variáveis de ambiente
+3. Teste no Supabase dashboard
+4. Verifique a quota da OpenAI
+
+---
+
+**🚀 Pronto para deploy em produção!**
+
+Este projeto foi desenvolvido para ser uma solução completa e profissional de tradução, ideal para uso comercial ou pessoal.

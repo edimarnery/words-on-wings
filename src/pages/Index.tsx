@@ -1,10 +1,12 @@
 import { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { ArrowRight, ArrowLeftRight, Languages, Sparkles } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ArrowRight, ArrowLeftRight, Languages, Sparkles, FileText, MessageSquare } from "lucide-react";
 import { LanguageSelector } from "@/components/LanguageSelector";
 import { TranslateBox } from "@/components/TranslateBox";
 import { TranslationHistory, Translation } from "@/components/TranslationHistory";
+import { DocumentTranslator } from "@/components/DocumentTranslator";
 import { useTranslate } from "@/hooks/useTranslate";
 import heroImage from "@/assets/hero-translation.jpg";
 
@@ -62,20 +64,43 @@ const Index = () => {
             Tradutor Universal
           </h1>
           <p className="text-xl text-primary-foreground/80 mb-8 max-w-2xl mx-auto">
-            Traduza textos instantaneamente entre dezenas de idiomas com precisão e velocidade
+            Traduza textos e documentos DOCX mantendo formatação original. Powered by OpenAI GPT-4
           </p>
-          <div className="flex items-center justify-center gap-2 text-primary-foreground/70">
-            <Sparkles className="h-4 w-4" />
-            <span>Tradução gratuita e ilimitada</span>
+          <div className="flex items-center justify-center gap-6 text-primary-foreground/70 flex-wrap">
+            <div className="flex items-center gap-2">
+              <Sparkles className="h-4 w-4" />
+              <span>OpenAI GPT-4</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <FileText className="h-4 w-4" />
+              <span>Documentos DOCX</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <MessageSquare className="h-4 w-4" />
+              <span>Texto em tempo real</span>
+            </div>
           </div>
         </div>
       </div>
 
       {/* Main Content */}
       <div className="container mx-auto px-4 py-12">
-        <div className="grid lg:grid-cols-3 gap-8">
-          {/* Translation Interface */}
-          <div className="lg:col-span-2 space-y-6">
+        <Tabs defaultValue="text" className="w-full">
+          <TabsList className="grid w-full grid-cols-2 max-w-md mx-auto mb-8 bg-card/50 backdrop-blur-sm">
+            <TabsTrigger value="text" className="flex items-center gap-2">
+              <MessageSquare className="h-4 w-4" />
+              Texto
+            </TabsTrigger>
+            <TabsTrigger value="document" className="flex items-center gap-2">
+              <FileText className="h-4 w-4" />
+              Documentos
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="text">
+            <div className="grid lg:grid-cols-3 gap-8">
+              {/* Text Translation Interface */}
+              <div className="lg:col-span-2 space-y-6">
             {/* Language Selectors */}
             <Card className="bg-gradient-card backdrop-blur-sm border-border/50 shadow-card">
               <CardContent className="p-6">
@@ -161,18 +186,26 @@ const Index = () => {
                   </>
                 )}
               </Button>
-            </div>
-          </div>
+                </div>
+              </div>
 
-          {/* Translation History */}
-          <div className="lg:col-span-1">
-            <TranslationHistory
-              translations={translations}
-              onClearHistory={clearHistory}
-              onSelectTranslation={handleSelectTranslation}
-            />
-          </div>
-        </div>
+              {/* Translation History */}
+              <div className="lg:col-span-1">
+                <TranslationHistory
+                  translations={translations}
+                  onClearHistory={clearHistory}
+                  onSelectTranslation={handleSelectTranslation}
+                />
+              </div>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="document">
+            <div className="max-w-4xl mx-auto">
+              <DocumentTranslator />
+            </div>
+          </TabsContent>
+        </Tabs>
       </div>
 
       {/* Footer */}

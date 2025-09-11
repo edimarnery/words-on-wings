@@ -1,21 +1,22 @@
 services:
-  # Frontend React
+  # Frontend React (com nginx proxy)
   frontend:
     build: .
     ports:
       - "3001:80"
     environment:
       - NODE_ENV=production
-      - VITE_API_URL=http://ia.encnetwork.com.br:8001
     restart: unless-stopped
     depends_on:
       - backend
+    networks:
+      - translator-network
 
   # Backend Python
   backend:
     build: ./backend
-    ports:
-      - "8001:8000"
+    expose:
+      - "8000"
     environment:
       - OPENAI_API_KEY=${OPENAI_API_KEY}
       - MAX_UPLOAD_MB=300
@@ -24,3 +25,9 @@ services:
       - ./backend/data:/app/data
       - ./backend/logs:/app/logs
     restart: unless-stopped
+    networks:
+      - translator-network
+
+networks:
+  translator-network:
+    driver: bridge

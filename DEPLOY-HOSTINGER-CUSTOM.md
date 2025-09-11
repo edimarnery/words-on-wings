@@ -8,23 +8,24 @@ Use este docker-compose.yml no editor YAML do Hostinger:
 
 ```yaml
 services:
-  # Frontend React
+  # Frontend React (com nginx proxy)
   frontend:
     build: .
     ports:
       - "3001:80"
     environment:
       - NODE_ENV=production
-      - VITE_API_URL=http://ia.encnetwork.com.br:8001
     restart: unless-stopped
     depends_on:
       - backend
+    networks:
+      - translator-network
 
   # Backend Python
   backend:
     build: ./backend
-    ports:
-      - "8001:8000"
+    expose:
+      - "8000"
     environment:
       - OPENAI_API_KEY=${OPENAI_API_KEY}
       - MAX_UPLOAD_MB=300
@@ -33,6 +34,12 @@ services:
       - ./backend/data:/app/data
       - ./backend/logs:/app/logs
     restart: unless-stopped
+    networks:
+      - translator-network
+
+networks:
+  translator-network:
+    driver: bridge
 ```
 
 ### 2. Variáveis de Ambiente
@@ -46,22 +53,25 @@ OPENAI_API_KEY=sk-proj-GkeTFrgS_L-PpB-xmqMvun7jp-6OqNcIHG1MUcCTXpHQ5o_LAOywW3PC_
 ### 3. URLs dos Serviços
 
 - **Frontend**: http://ia.encnetwork.com.br:3001
-- **API Backend**: http://ia.encnetwork.com.br:8001
-- **Health Check**: http://ia.encnetwork.com.br:8001/api/health
+- **API Backend**: http://ia.encnetwork.com.br:3001/api (proxy via nginx)
+- **Health Check**: http://ia.encnetwork.com.br:3001/api/health
 
 ### 4. Configurações Alteradas
 
-1. **Porta do Backend**: 8000 → 8001 (para evitar conflito)
-2. **API URL**: Configurada para usar seu domínio personalizado
-3. **CORS**: Backend configurado para aceitar todas as origens
+1. **Nginx**: Configurado para aceitar uploads de até 300MB
+2. **Proxy**: API roteada via nginx (frontend:3001/api → backend:8000)
+3. **Network**: Rede Docker interna para comunicação segura
+4. **Timeouts**: Configurados para uploads grandes (5min)
+5. **CORS**: Backend configurado para aceitar requisições do frontend
 
 ### 5. Testes Após Deploy
 
 1. Acesse: `http://ia.encnetwork.com.br:3001`
-2. Teste health: `http://ia.encnetwork.com.br:8001/api/health`
+2. Teste health: `http://ia.encnetwork.com.br:3001/api/health`
 3. Faça upload de um documento DOCX pequeno
-4. Verifique se o download funciona
-5. Teste tradução com diferentes idiomas
+4. Teste com arquivo maior (até 300MB)
+5. Verifique se o download funciona
+6. Teste tradução com diferentes idiomas
 
 ### 6. Passos no Hostinger
 
@@ -74,7 +84,8 @@ OPENAI_API_KEY=sk-proj-GkeTFrgS_L-PpB-xmqMvun7jp-6OqNcIHG1MUcCTXpHQ5o_LAOywW3PC_
 ### 7. Monitoramento
 
 Monitore os logs para verificar se:
-- ✅ Frontend iniciou na porta 3001
-- ✅ Backend iniciou na porta 8001  
-- ✅ OpenAI API Key foi carregada
-- ✅ Não há conflitos de porta
+- ✅ Frontend iniciou na porta 3001 
+- ✅ Backend iniciou na porta 8000 (interna)
+- ✅ Nginx proxy funcionando (/api → backend)
+- ✅ OpenAI API Key carregada
+- ✅ Uploads de 300MB funcionando

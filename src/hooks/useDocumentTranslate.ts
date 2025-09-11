@@ -38,6 +38,12 @@ export const useDocumentTranslate = () => {
     targetLang: string,
     glossaryFile?: File
   ): Promise<boolean> => {
+    console.log('🚀 Iniciando tradução de documento...');
+    console.log('Files:', Array.from(files).map(f => f.name));
+    console.log('Source lang:', sourceLang);
+    console.log('Target lang:', targetLang);
+    console.log('API Base:', API_BASE);
+
     if (!files || files.length === 0) {
       toast({
         title: "Arquivo necessário",
@@ -54,11 +60,13 @@ export const useDocumentTranslate = () => {
       
       // Adicionar arquivos
       Array.from(files).forEach(file => {
+        console.log('📄 Adicionando arquivo:', file.name, file.size, 'bytes');
         formData.append('files', file);
       });
 
       // Adicionar glossário se fornecido
       if (glossaryFile) {
+        console.log('📚 Adicionando glossário:', glossaryFile.name);
         formData.append('glossario', glossaryFile);
       }
 
@@ -67,6 +75,8 @@ export const useDocumentTranslate = () => {
       formData.append('idioma_destino', targetLang);
       formData.append('perfil', 'normal');
 
+      console.log('📡 Enviando requisição para:', `${API_BASE}/translate`);
+      
       const response = await fetch(`${API_BASE}/translate`, {
         method: 'POST',
         body: formData,

@@ -21,9 +21,7 @@ from docx.oxml import OxmlElement
 from pptx import Presentation
 from openai import OpenAI
 import time
-
-DEFAULT_MODEL = os.getenv("OPENAI_MODEL", "gpt-4o")
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
+from config import get_openai_client, DEFAULT_MODEL, validate_openai_config
 
 # Configurar logging detalhado
 logging.basicConfig(level=logging.INFO)
@@ -58,9 +56,15 @@ class ProfessionalTranslator:
     """Tradutor profissional com validação de integridade"""
     
     def __init__(self):
-        self.client = None
-        if OPENAI_API_KEY:
-            self.client = OpenAI(api_key=OPENAI_API_KEY)
+        try:
+            # Usar configuração centralizada
+            validate_openai_config()
+            self.client = get_openai_client()
+            logger.info("Tradutor profissional inicializado com sucesso")
+        except Exception as e:
+            logger.error(f"Erro ao inicializar tradutor profissional: {e}")
+            self.client = None
+        
         self.backup_dir = Path("backups")
         self.backup_dir.mkdir(exist_ok=True)
         
@@ -205,7 +209,8 @@ TRADUÇÃO:"""
                     {"role": "user", "content": prompt}
                 ],
                 temperature=0.1,
-                max_tokens=4000
+                max_tokens=4000,
+                timeout=60
             )
             
             translation = response.choices[0].message.content.strip()
@@ -213,6 +218,7 @@ TRADUÇÃO:"""
             
         except Exception as e:
             logger.error(f"Erro na tradução: {e}")
+            # Em caso de erro, retornar texto original para não quebrar o documento
             return text
     
     def translate_docx_professional(self, input_path: str, output_path: str, source_lang: str, target_lang: str, model: str = None) -> TranslationResult:

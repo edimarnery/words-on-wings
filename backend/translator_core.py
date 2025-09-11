@@ -13,9 +13,7 @@ from openpyxl import load_workbook
 from docx import Document
 from pptx import Presentation
 from openai import OpenAI
-
-DEFAULT_MODEL = os.getenv("OPENAI_MODEL", "gpt-4o")
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
+from config import get_openai_client, DEFAULT_MODEL, validate_openai_config
 
 # Configurar logging
 logging.basicConfig(level=logging.INFO)
@@ -23,10 +21,8 @@ logger = logging.getLogger(__name__)
 
 _client = None
 def get_client():
-    global _client
-    if _client is None and OPENAI_API_KEY:
-        _client = OpenAI(api_key=OPENAI_API_KEY)
-    return _client
+    """Wrapper para manter compatibilidade com o código existente"""
+    return get_openai_client()
 
 # Mapeamento de idiomas melhorado com Espanhol Boliviano
 IDIOMAS_MAPEAMENTO = {
@@ -240,7 +236,8 @@ def ia_batch_translate(chunks: List[str], origem: str, destino: str, model: Opti
                     {"role": "user", "content": prompt}
                 ],
                 temperature=0.1,
-                max_tokens=4000
+                max_tokens=4000,
+                timeout=60
             )
             
             traducao = response.choices[0].message.content.strip()
@@ -252,6 +249,7 @@ def ia_batch_translate(chunks: List[str], origem: str, destino: str, model: Opti
             
         except Exception as e:
             logger.error(f"Erro na tradução do chunk {i}: {e}")
+            # Em caso de erro, retornar texto original
             result[f"chunk_{i}"] = chunk
     
     return result

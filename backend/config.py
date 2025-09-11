@@ -19,39 +19,37 @@ MAX_UPLOAD_MB = int(os.getenv("MAX_UPLOAD_MB", "300"))
 _openai_client = None
 
 def get_openai_client():
-    """Retorna instância única do cliente OpenAI (SDK v1.x)"""
+    """Retorna instância única do cliente OpenAI (SDK v1.x) - Versão Limpa"""
     global _openai_client
     
     if _openai_client is None and OPENAI_API_KEY:
         try:
-            # Verificar se há configuração de proxy
-            proxy_url = os.getenv("HTTPS_PROXY") or os.getenv("HTTP_PROXY")
+            print("Iniciando criação do cliente OpenAI...")
             
-            # Configurar cliente HTTP se há proxy e httpx disponível
-            http_client = None
-            if proxy_url and httpx:
-                print(f"Configurando proxy: {proxy_url}")
-                http_client = httpx.Client(
-                    proxies=proxy_url,
-                    timeout=60.0
-                )
-            elif proxy_url:
-                print("Proxy detectado mas httpx não disponível. Usando configuração padrão.")
+            # IMPORTANTE: Usar apenas os argumentos suportados pelo SDK v1.x
+            # NÃO usar 'proxies' diretamente no OpenAI()
             
-            # Inicialização limpa seguindo SDK v1.x
-            if http_client:
-                _openai_client = OpenAI(
-                    api_key=OPENAI_API_KEY,
-                    http_client=http_client
-                )
-            else:
-                _openai_client = OpenAI(api_key=OPENAI_API_KEY)
+            # Inicialização mais simples possível para evitar erros
+            _openai_client = OpenAI(
+                api_key=OPENAI_API_KEY,
+                timeout=60.0
+            )
             
-            print("Cliente OpenAI inicializado com sucesso")
+            print("✅ Cliente OpenAI criado com sucesso")
+            
+            # Testar se o cliente funciona
+            print("Testando cliente OpenAI...")
+            test_response = _openai_client.models.list()
+            print(f"✅ Cliente OpenAI validado - {len(test_response.data)} modelos disponíveis")
                 
         except Exception as e:
-            print(f"Erro ao inicializar cliente OpenAI: {e}")
+            print(f"❌ Erro ao inicializar cliente OpenAI: {e}")
             print(f"Tipo do erro: {type(e).__name__}")
+            
+            # Log adicional para debug
+            import traceback
+            print(f"Traceback completo: {traceback.format_exc()}")
+            
             _openai_client = None
     
     return _openai_client

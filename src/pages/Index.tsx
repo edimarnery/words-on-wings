@@ -59,14 +59,14 @@ const Index = () => {
           <div className="flex justify-center mb-8">
             <div className="p-6 bg-white/10 rounded-full backdrop-blur-sm">
               <img 
-                src="/lovable-uploads/14fb849f-db96-4ad5-9dae-81898934e0bd.png" 
+                src="/lovable-uploads/87544ea1-fb63-45c9-9dd4-8c9aea846985.png" 
                 alt="Brazil Translations Logo" 
                 className="h-24 w-24"
               />
             </div>
           </div>
           <h1 className="text-4xl md:text-6xl font-bold text-white mb-6">
-            Tradutor Universal
+            Brazil Translations
           </h1>
           <p className="text-xl md:text-2xl text-white/90 mb-8 max-w-3xl mx-auto">
             Traduza textos e documentos com precisão usando inteligência artificial avançada
@@ -209,19 +209,25 @@ const Index = () => {
       {/* Footer */}
       <footer className="bg-gray-900 text-white py-12">
         <div className="container mx-auto px-4 text-center">
-          <div className="flex items-center justify-center gap-2 mb-4">
-            <Languages className="h-5 w-5" />
-            <span className="font-semibold">Tradutor Universal</span>
+          <div className="flex items-center justify-center gap-3 mb-4">
+            <img 
+              src="/lovable-uploads/87544ea1-fb63-45c9-9dd4-8c9aea846985.png" 
+              alt="Brazil Translations Logo" 
+              className="h-8 w-8"
+            />
+            <span className="font-semibold text-lg">Brazil Translations</span>
           </div>
           <p className="text-gray-400 mb-6">
             Quebre barreiras linguísticas com nossa tecnologia avançada de tradução
           </p>
           <div className="flex justify-center space-x-6 text-sm text-gray-400">
-            <span>Powered by AI</span>
+            <span>Powered by Advanced AI</span>
             <span>•</span>
             <span>Seguro e Privado</span>
             <span>•</span>
             <span>Traduções Precisas</span>
+            <span>•</span>
+            <span>Brazil Translations © 2024</span>
           </div>
         </div>
       </footer>

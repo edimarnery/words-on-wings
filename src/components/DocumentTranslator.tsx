@@ -1,5 +1,6 @@
-import { useState, useCallback } from 'react';
+import React, { useState, useCallback } from 'react';
 import { Button } from "@/components/ui/button";
+import { BrandLogo } from './BrandLogo';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { FileText, Download, Loader2, Sparkles, ArrowRight } from "lucide-react";
@@ -56,7 +57,11 @@ export const DocumentTranslator = () => {
       <div className="text-center space-y-4">
         <div className="flex items-center justify-center gap-2">
           <div className="p-3 bg-gradient-primary rounded-full">
-            <FileText className="h-8 w-8 text-primary-foreground" />
+            <img 
+              src="/lovable-uploads/87544ea1-fb63-45c9-9dd4-8c9aea846985.png" 
+              alt="Brazil Translations Logo" 
+              className="h-8 w-8"
+            />
           </div>
           <Sparkles className="h-6 w-6 text-primary animate-pulse" />
         </div>
@@ -65,10 +70,10 @@ export const DocumentTranslator = () => {
             Tradutor de Documentos AI
           </h2>
           <p className="text-muted-foreground mt-2">
-            Tradução profissional com OpenAI mantendo formatação original
+            Tradução profissional com inteligência artificial mantendo formatação original
           </p>
           <Badge variant="secondary" className="mt-2">
-            Powered by GPT-4
+            Powered by Brazil Translations
           </Badge>
         </div>
       </div>
@@ -162,7 +167,7 @@ export const DocumentTranslator = () => {
             <div className="flex gap-4 pt-4">
               <Button
                 onClick={handleDownload}
-                className="flex-1"
+                className="flex-1 bg-gradient-primary hover:opacity-90 text-primary-foreground"
                 disabled={!currentJob.translatedFileUrl}
               >
                 <Download className="mr-2 h-4 w-4" />
@@ -172,16 +177,18 @@ export const DocumentTranslator = () => {
               <Button
                 variant="outline"
                 onClick={handleReset}
+                className="bg-secondary/10 hover:bg-secondary/20 border-primary/20"
               >
                 Nova Tradução
               </Button>
             </div>
 
-          <div className="text-xs text-muted-foreground text-center pt-2 border-t border-border/20">
+            <div className="text-xs text-muted-foreground text-center pt-2 border-t border-border/20">
             ✨ Tradução profissional com validação de integridade • Formatação 100% preservada
             <br />
             📊 {currentJob.files?.reduce((sum, f) => sum + (f.original_elements || 0), 0) || 0} elementos traduzidos
             • ⏱️ {currentJob.files?.reduce((sum, f) => sum + (f.processing_time || 0), 0).toFixed(1) || 0}s
+            • 🇧🇷 Brazil Translations
           </div>
           </CardContent>
         </Card>

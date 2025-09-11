@@ -1,6 +1,6 @@
-# 🌐 Tradutor Universal - Solução Completa de Tradução
+# 🇧🇷 Brazil Translations - Tradutor Universal
 
-Uma aplicação web moderna e profissional para tradução de textos e documentos DOCX usando OpenAI GPT-4, mantendo formatação original.
+Uma aplicação web moderna e profissional para tradução de textos e documentos usando inteligência artificial avançada, desenvolvida pela Brazil Translations.
 
 ## ✨ Funcionalidades
 
@@ -188,6 +188,6 @@ Para problemas técnicos:
 
 ---
 
-**🚀 Pronto para deploy em produção!**
+**🇧🇷 Brazil Translations - Quebrando barreiras linguísticas com tecnologia avançada!**
 
-Este projeto foi desenvolvido para ser uma solução completa e profissional de tradução, ideal para uso comercial ou pessoal.
+© 2024 Brazil Translations. Desenvolvido com ❤️ para conectar o mundo através da tradução.

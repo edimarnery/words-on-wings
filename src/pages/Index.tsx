@@ -53,7 +53,11 @@ const Index = () => {
         <div className="container mx-auto">
           <div className="flex justify-center mb-6">
             <div className="p-4 bg-white/10 rounded-full backdrop-blur-sm">
-              <Languages className="h-12 w-12 text-white" />
+              <img 
+                src="/lovable-uploads/14fb849f-db96-4ad5-9dae-81898934e0bd.png" 
+                alt="Brazil Translations Logo" 
+                className="h-16 w-16"
+              />
             </div>
           </div>
           <h1 className="text-4xl md:text-6xl font-bold text-white mb-6">

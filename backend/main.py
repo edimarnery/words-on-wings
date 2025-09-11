@@ -46,8 +46,8 @@ app = FastAPI(
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
-        "http://ia.encnetwork.com.br:3000",
-        "https://ia.encnetwork.com.br:3000", 
+        "http://ia.encnetwork.com.br:3001",
+        "https://ia.encnetwork.com.br:3001", 
         "http://localhost:3000",
         "http://localhost:5173"
     ],

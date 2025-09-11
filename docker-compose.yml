@@ -3,7 +3,7 @@ services:
   frontend:
     build: .
     ports:
-      - "3000:80"
+      - "3001:80"
     environment:
       - NODE_ENV=production
       - VITE_API_URL=http://ia.encnetwork.com.br:8001

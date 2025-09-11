@@ -12,7 +12,7 @@ services:
   frontend:
     build: .
     ports:
-      - "3000:80"
+      - "3001:80"
     environment:
       - NODE_ENV=production
       - VITE_API_URL=http://ia.encnetwork.com.br:8001
@@ -45,7 +45,7 @@ OPENAI_API_KEY=sk-proj-GkeTFrgS_L-PpB-xmqMvun7jp-6OqNcIHG1MUcCTXpHQ5o_LAOywW3PC_
 
 ### 3. URLs dos Serviços
 
-- **Frontend**: http://ia.encnetwork.com.br:3000
+- **Frontend**: http://ia.encnetwork.com.br:3001
 - **API Backend**: http://ia.encnetwork.com.br:8001
 - **Health Check**: http://ia.encnetwork.com.br:8001/api/health
 
@@ -57,7 +57,7 @@ OPENAI_API_KEY=sk-proj-GkeTFrgS_L-PpB-xmqMvun7jp-6OqNcIHG1MUcCTXpHQ5o_LAOywW3PC_
 
 ### 5. Testes Após Deploy
 
-1. Acesse: `http://ia.encnetwork.com.br:3000`
+1. Acesse: `http://ia.encnetwork.com.br:3001`
 2. Teste health: `http://ia.encnetwork.com.br:8001/api/health`
 3. Faça upload de um documento DOCX pequeno
 4. Verifique se o download funciona
@@ -74,7 +74,7 @@ OPENAI_API_KEY=sk-proj-GkeTFrgS_L-PpB-xmqMvun7jp-6OqNcIHG1MUcCTXpHQ5o_LAOywW3PC_
 ### 7. Monitoramento
 
 Monitore os logs para verificar se:
-- ✅ Frontend iniciou na porta 3000
+- ✅ Frontend iniciou na porta 3001
 - ✅ Backend iniciou na porta 8001  
 - ✅ OpenAI API Key foi carregada
 - ✅ Não há conflitos de porta

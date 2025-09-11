@@ -8,44 +8,44 @@ All colors MUST be HSL.
 
 @layer base {
   :root {
-    /* Base colors - Tema escuro Brasil */
-    --background: 140 30% 8%; /* Verde escuro Brasil */
-    --foreground: 45 95% 95%; /* Amarelo claro */
+    /* Tema moderno - cores vibrantes e gradientes elegantes */
+    --background: 220 25% 6%; /* Azul escuro profundo */
+    --foreground: 210 20% 95%; /* Branco suave */
 
-    --card: 140 25% 12%; /* Verde mais claro para cards */
-    --card-foreground: 45 90% 92%;
+    --card: 220 20% 8%; /* Cards com azul escuro */
+    --card-foreground: 210 15% 92%;
 
-    --popover: 140 30% 10%;
-    --popover-foreground: 45 95% 95%;
+    --popover: 220 25% 10%;
+    --popover-foreground: 210 20% 95%;
 
-    --primary: 220 85% 25%; /* Azul Brasil escuro */
-    --primary-foreground: 45 95% 95%;
+    --primary: 200 100% 50%; /* Ciano vibrante */
+    --primary-foreground: 220 25% 6%;
 
-    --secondary: 140 35% 15%; /* Verde Brasil */
-    --secondary-foreground: 45 90% 90%;
+    --secondary: 240 15% 15%; /* Roxo escuro */
+    --secondary-foreground: 210 15% 90%;
 
-    --muted: 140 20% 18%;
-    --muted-foreground: 45 40% 70%;
+    --muted: 220 15% 12%;
+    --muted-foreground: 210 10% 70%;
 
-    --accent: 45 85% 35%; /* Amarelo Brasil */
-    --accent-foreground: 140 30% 8%;
+    --accent: 280 100% 60%; /* Magenta vibrante */
+    --accent-foreground: 220 25% 6%;
 
-    --destructive: 0 75% 45%;
-    --destructive-foreground: 45 95% 95%;
+    --destructive: 0 85% 55%;
+    --destructive-foreground: 210 20% 95%;
 
-    --border: 140 20% 20%;
-    --input: 140 25% 15%;
-    --ring: 45 85% 50%;
+    --border: 220 15% 18%;
+    --input: 220 20% 12%;
+    --ring: 200 100% 50%;
 
-    /* Gradientes inspirados no Brasil */
-    --gradient-hero: linear-gradient(135deg, hsl(140, 50%, 20%) 0%, hsl(220, 85%, 25%) 50%, hsl(45, 85%, 35%) 100%);
-    --gradient-brand: linear-gradient(135deg, hsl(140, 50%, 25%), hsl(220, 85%, 30%));
-    --gradient-card: linear-gradient(145deg, hsl(140, 25%, 12%), hsl(140, 30%, 15%));
-    --gradient-primary: linear-gradient(135deg, hsl(220, 85%, 25%), hsl(220, 80%, 35%));
+    /* Gradientes modernos e elegantes */
+    --gradient-hero: linear-gradient(135deg, hsl(220, 25%, 6%) 0%, hsl(240, 30%, 12%) 30%, hsl(280, 80%, 20%) 70%, hsl(200, 100%, 30%) 100%);
+    --gradient-brand: linear-gradient(135deg, hsl(200, 100%, 50%), hsl(280, 100%, 60%));
+    --gradient-card: linear-gradient(145deg, hsl(220, 20%, 8%), hsl(240, 25%, 12%));
+    --gradient-primary: linear-gradient(135deg, hsl(200, 100%, 50%), hsl(180, 100%, 45%));
     
-    --shadow-brand: 0 10px 30px -10px hsl(220, 85%, 25% / 0.4);
-    --shadow-glow: 0 0 40px hsl(45, 85%, 50% / 0.3);
-    --shadow-card: 0 8px 25px -8px hsl(140, 30%, 8% / 0.6);
+    --shadow-brand: 0 10px 40px -10px hsl(200, 100%, 50% / 0.4);
+    --shadow-glow: 0 0 50px hsl(280, 100%, 60% / 0.4);
+    --shadow-card: 0 8px 32px -8px hsl(220, 25%, 6% / 0.8);
     
     --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 
@@ -62,26 +62,26 @@ All colors MUST be HSL.
   }
 
   .dark {
-    /* Modo escuro ainda mais escuro */
-    --background: 140 40% 5%; /* Verde muito escuro */
-    --foreground: 45 95% 92%;
-    --card: 140 35% 8%;
-    --card-foreground: 45 95% 92%;
-    --popover: 140 40% 6%;
-    --popover-foreground: 45 95% 92%;
-    --primary: 220 90% 30%; /* Azul mais vibrante */
-    --primary-foreground: 45 95% 95%;
-    --secondary: 140 40% 12%;
-    --secondary-foreground: 45 90% 88%;
-    --muted: 140 25% 10%;
-    --muted-foreground: 45 30% 65%;
-    --accent: 45 90% 40%; /* Amarelo mais vibrante */
-    --accent-foreground: 140 40% 5%;
-    --destructive: 0 80% 50%;
-    --destructive-foreground: 45 95% 95%;
-    --border: 140 25% 15%;
-    --input: 140 30% 12%;
-    --ring: 45 90% 55%;
+    /* Modo ainda mais escuro com neon */
+    --background: 220 30% 4%; /* Quase preto com toque azul */
+    --foreground: 180 20% 98%;
+    --card: 220 25% 6%;
+    --card-foreground: 180 15% 95%;
+    --popover: 220 30% 5%;
+    --popover-foreground: 180 20% 98%;
+    --primary: 180 100% 60%; /* Ciano neon */
+    --primary-foreground: 220 30% 4%;
+    --secondary: 240 20% 12%;
+    --secondary-foreground: 180 15% 90%;
+    --muted: 220 20% 8%;
+    --muted-foreground: 180 10% 65%;
+    --accent: 300 100% 70%; /* Rosa neon */
+    --accent-foreground: 220 30% 4%;
+    --destructive: 0 90% 60%;
+    --destructive-foreground: 180 20% 98%;
+    --border: 220 20% 15%;
+    --input: 220 25% 10%;
+    --ring: 180 100% 60%;
     --sidebar-background: 240 5.9% 10%;
     --sidebar-foreground: 240 4.8% 95.9%;
     --sidebar-primary: 224.3 76.3% 48%;
@@ -115,8 +115,12 @@ All colors MUST be HSL.
   }
 
   @keyframes pulse-glow {
-    0%, 100% { box-shadow: var(--shadow-glow); }
-    50% { box-shadow: 0 0 60px hsl(263, 70%, 50% / 0.4); }
+    0%, 100% { 
+      box-shadow: 0 0 20px hsl(200, 100%, 50% / 0.3), 0 0 40px hsl(280, 100%, 60% / 0.2); 
+    }
+    50% { 
+      box-shadow: 0 0 30px hsl(200, 100%, 50% / 0.5), 0 0 60px hsl(280, 100%, 60% / 0.4); 
+    }
   }
 
   .animate-fade-in {

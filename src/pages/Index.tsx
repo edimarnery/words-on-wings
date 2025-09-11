@@ -99,21 +99,21 @@ const Index = () => {
       </section>
 
       {/* Main Content */}
-      <section className="py-16">
+      <section className="py-16 bg-gradient-to-br from-gray-50 via-slate-50 to-blue-50">
         <div className="container mx-auto px-4">
           <div className="max-w-6xl mx-auto">
             <Tabs defaultValue="text" className="w-full">
-              <TabsList className="grid w-full grid-cols-2 mb-8 max-w-md mx-auto">
-                <TabsTrigger value="text">Tradução de Texto</TabsTrigger>
-                <TabsTrigger value="document">Tradução de Documentos</TabsTrigger>
+              <TabsList className="grid w-full grid-cols-2 mb-8 max-w-md mx-auto bg-white/80 backdrop-blur-sm shadow-lg border-0">
+                <TabsTrigger value="text" className="data-[state=active]:bg-blue-500 data-[state=active]:text-white transition-all duration-300">Tradução de Texto</TabsTrigger>
+                <TabsTrigger value="document" className="data-[state=active]:bg-blue-500 data-[state=active]:text-white transition-all duration-300">Tradução de Documentos</TabsTrigger>
               </TabsList>
 
               <TabsContent value="text" className="space-y-6">
-                <div className="bg-white rounded-2xl shadow-lg p-8">
+                <div className="bg-white/90 backdrop-blur-sm rounded-2xl shadow-xl border border-white/50 p-8 animate-fade-in">
                   {/* Language Selectors */}
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end mb-6">
                     <div>
-                      <label className="block text-sm font-medium mb-2">Idioma de origem</label>
+                      <label className="block text-sm font-medium mb-2 text-gray-700">Idioma de origem</label>
                       <LanguageSelector
                         value={sourceLang}
                         onChange={setSourceLang}
@@ -126,13 +126,13 @@ const Index = () => {
                         size="icon"
                         onClick={handleSwapLanguages}
                         disabled={sourceLang === 'auto'}
-                        className="rounded-full"
+                        className="rounded-full hover:scale-110 transition-all duration-200 border-blue-200 hover:bg-blue-50"
                       >
                         <ArrowLeftRight className="w-4 h-4" />
                       </Button>
                     </div>
                     <div>
-                      <label className="block text-sm font-medium mb-2">Idioma de destino</label>
+                      <label className="block text-sm font-medium mb-2 text-gray-700">Idioma de destino</label>
                       <LanguageSelector
                         value={targetLang}
                         onChange={setTargetLang}
@@ -142,16 +142,16 @@ const Index = () => {
 
                   {/* Translation Boxes */}
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-                    <div>
-                      <label className="block text-sm font-medium mb-2">Texto original</label>
+                    <div className="animate-fade-in" style={{animationDelay: '0.1s'}}>
+                      <label className="block text-sm font-medium mb-2 text-gray-700">Texto original</label>
                       <TranslateBox
                         value={sourceText}
                         onChange={setSourceText}
                         placeholder="Digite o texto que deseja traduzir..."
                       />
                     </div>
-                    <div>
-                      <label className="block text-sm font-medium mb-2">Texto traduzido</label>
+                    <div className="animate-fade-in" style={{animationDelay: '0.2s'}}>
+                      <label className="block text-sm font-medium mb-2 text-gray-700">Texto traduzido</label>
                       <TranslateBox
                         value={translatedText}
                         onChange={() => {}}
@@ -167,7 +167,7 @@ const Index = () => {
                       onClick={handleTranslate}
                       disabled={!sourceText.trim() || isLoading}
                       size="lg"
-                      className="px-8 shadow-lg"
+                      className="px-8 shadow-lg bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 hover:scale-105 transition-all duration-300"
                     >
                       {isLoading ? (
                         <div className="flex items-center gap-2">
@@ -185,17 +185,19 @@ const Index = () => {
 
                   {/* Translation History */}
                   {translations.length > 0 && (
-                    <TranslationHistory
-                      translations={translations}
-                      onSelectTranslation={handleSelectTranslation}
-                      onClearHistory={clearHistory}
-                    />
+                    <div className="animate-fade-in" style={{animationDelay: '0.3s'}}>
+                      <TranslationHistory
+                        translations={translations}
+                        onSelectTranslation={handleSelectTranslation}
+                        onClearHistory={clearHistory}
+                      />
+                    </div>
                   )}
                 </div>
               </TabsContent>
 
               <TabsContent value="document">
-                <div className="bg-white rounded-2xl shadow-lg p-8">
+                <div className="bg-white/90 backdrop-blur-sm rounded-2xl shadow-xl border border-white/50 p-8 animate-fade-in">
                   <DocumentTranslator />
                 </div>
               </TabsContent>

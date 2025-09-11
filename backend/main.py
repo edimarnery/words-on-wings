@@ -35,8 +35,8 @@ logger = logging.getLogger(__name__)
 # Configurações
 MAX_UPLOAD_MB = int(os.getenv("MAX_UPLOAD_MB", "300"))
 PROFILE_MAP = {
-    "normal": "gpt-5-2025-08-07",
-    "rapido": "gpt-5-mini-2025-08-07",
+    "normal": "gpt-4.1-2025-04-14",
+    "rapido": "gpt-4.1-mini-2025-04-14",
 }
 
 # Diretórios
@@ -54,6 +54,30 @@ app = FastAPI(
     description="API para tradução de documentos DOCX, PPTX e XLSX",
     version="2.0"
 )
+
+@app.on_event("startup")
+def check_openai_startup():
+    """Verifica OpenAI no startup para evitar 500 errors"""
+    try:
+        logger.info("🧪 Testando conexão OpenAI no startup...")
+        validate_openai_config()
+        client = get_openai_client()
+        if client:
+            # Teste rápido para verificar se não há problemas de configuração
+            logger.info("✅ Cliente OpenAI inicializado com sucesso")
+        else:
+            logger.error("❌ Cliente OpenAI não pôde ser inicializado")
+            raise SystemExit(1)
+    except TypeError as e:
+        if "proxies" in str(e):
+            logger.error("❌ Erro de configuração OpenAI: parâmetro 'proxies' não permitido")
+            logger.error("Certifique-se de que as versões openai>=1.55.3 e httpx<0.28 estão instaladas")
+        else:
+            logger.error(f"❌ Erro TypeError no OpenAI: {e}")
+        raise SystemExit(1)
+    except Exception as e:
+        logger.error(f"❌ Erro na configuração OpenAI no startup: {e}")
+        raise SystemExit(1)
 
 # CORS
 app.add_middleware(

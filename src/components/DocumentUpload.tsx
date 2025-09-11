@@ -5,7 +5,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { FileText, Upload, X, CheckCircle, AlertCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase, isSupabaseConfigured } from "@/integrations/supabase/client";
 
 interface DocumentUploadProps {
   onUploadComplete: (fileUrl: string, fileName: string) => void;
@@ -27,6 +27,16 @@ export const DocumentUpload = ({ onUploadComplete, disabled }: DocumentUploadPro
       toast({
         title: "Arquivo inválido",
         description: "Por favor, selecione apenas arquivos .docx",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Check if Supabase is configured
+    if (!isSupabaseConfigured() || !supabase) {
+      toast({
+        title: "Configuração necessária",
+        description: "Conecte-se ao Supabase para fazer upload de arquivos.",
         variant: "destructive",
       });
       return;

@@ -121,12 +121,12 @@ export const LanguageSelector = ({ value, onChange, showAutoDetect = false }: La
 
   return (
     <Select value={value} onValueChange={onChange}>
-      <SelectTrigger className="w-[180px] bg-card/50 backdrop-blur-sm border-border/50 hover:bg-card/70 transition-smooth">
+      <SelectTrigger className="w-[180px] bg-card text-card-foreground border-border hover:bg-accent/50 transition-smooth shadow-sm">
         <SelectValue placeholder="Selecionar idioma" />
       </SelectTrigger>
-      <SelectContent className="bg-card/90 backdrop-blur-md border-border/50">
+      <SelectContent className="bg-card text-card-foreground border-border shadow-lg backdrop-blur-md z-50">
         {filteredLanguages.map((language) => (
-          <SelectItem key={language.code} value={language.code} className="hover:bg-accent/50">
+          <SelectItem key={language.code} value={language.code} className="hover:bg-accent/70 focus:bg-accent/70">
             {language.name}
           </SelectItem>
         ))}

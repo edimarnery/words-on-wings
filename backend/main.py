@@ -1,11 +1,24 @@
 # -*- coding: utf-8 -*-
-import os, io, zipfile, uuid, time, json, shutil, logging, traceback, asyncio
+"""
+API Principal do Tradutor Universal - Versão 2.0 Limpa
+"""
+
+import os
+import io
+import zipfile
+import uuid
+import time
+import json
+import shutil
+import logging
+import traceback
 from pathlib import Path
 from typing import List, Dict, Optional
 from fastapi import FastAPI, UploadFile, Form, HTTPException, BackgroundTasks
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from translator_core_pro import translate_file_professional, TranslationResult
+from config import validate_openai_config, get_openai_client, DEFAULT_MODEL, test_openai_connection
 import magic
 
 # Configuração de logging
@@ -19,7 +32,7 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# Configurações da aplicação
+# Configurações
 MAX_UPLOAD_MB = int(os.getenv("MAX_UPLOAD_MB", "300"))
 PROFILE_MAP = {
     "normal": "gpt-5-2025-08-07",
@@ -32,22 +45,22 @@ LOGS_DIR.mkdir(parents=True, exist_ok=True)
 DATA_DIR = Path("data")
 DATA_DIR.mkdir(parents=True, exist_ok=True)
 
-# Cache de links de download
-LINKS: Dict[str, Dict] = {}
+# Cache de downloads
+DOWNLOAD_LINKS: Dict[str, Dict] = {}
 
-# Inicialização da aplicação
+# App
 app = FastAPI(
-    title="Tradutor Universal API", 
+    title="Tradutor Universal API",
     description="API para tradução de documentos DOCX, PPTX e XLSX",
     version="2.0"
 )
 
-# Configurar CORS para React
+# CORS
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         "http://ia.encnetwork.com.br:3001",
-        "https://ia.encnetwork.com.br:3001", 
+        "https://ia.encnetwork.com.br:3001",
         "http://localhost:3000",
         "http://localhost:5173"
     ],
@@ -56,7 +69,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Tipos MIME permitidos
+# Tipos permitidos
 ALLOWED_MIME_TYPES = {
     'application/vnd.openxmlformats-officedocument.wordprocessingml.document': '.docx',
     'application/vnd.openxmlformats-officedocument.presentationml.presentation': '.pptx',
@@ -64,34 +77,31 @@ ALLOWED_MIME_TYPES = {
 }
 
 def validate_file_type(file_content: bytes, filename: str) -> bool:
-    """Valida o tipo do arquivo usando magic numbers"""
+    """Valida tipo do arquivo"""
     try:
         mime_type = magic.from_buffer(file_content, mime=True)
         return mime_type in ALLOWED_MIME_TYPES
     except Exception as e:
-        logger.warning(f"Erro na validação de tipo do arquivo {filename}: {e}")
-        # Fallback para extensão
+        logger.warning(f"Erro na validação: {e}")
         ext = os.path.splitext(filename)[1].lower()
         return ext in ['.docx', '.pptx', '.xlsx']
 
 def cleanup_old_files():
-    """Remove arquivos antigos para liberar espaço"""
+    """Remove arquivos antigos"""
     try:
         current_time = time.time()
         for job_dir in DATA_DIR.glob("job_*"):
-            if job_dir.is_dir():
-                # Remove diretórios de jobs com mais de 4 horas
-                if current_time - job_dir.stat().st_mtime > 4 * 3600:
-                    shutil.rmtree(job_dir, ignore_errors=True)
-                    logger.info(f"Removido diretório antigo: {job_dir}")
+            if job_dir.is_dir() and current_time - job_dir.stat().st_mtime > 4 * 3600:
+                shutil.rmtree(job_dir, ignore_errors=True)
+                logger.info(f"Removido: {job_dir}")
     except Exception as e:
-        logger.error(f"Erro na limpeza de arquivos: {e}")
+        logger.error(f"Erro na limpeza: {e}")
 
 @app.get("/api/health")
 def health():
-    """Endpoint de health check"""
+    """Health check"""
     return {
-        "status": "ok", 
+        "status": "ok",
         "timestamp": time.time(),
         "version": "2.0",
         "supported_formats": ["DOCX", "PPTX", "XLSX"],
@@ -100,52 +110,27 @@ def health():
 
 @app.get("/api/debug")
 def debug_config():
-    """Endpoint de debug para verificar configuração"""
+    """Debug da configuração"""
     openai_key = os.getenv("OPENAI_API_KEY")
     
     debug_info = {
         "timestamp": time.time(),
         "openai_key_present": bool(openai_key),
         "openai_key_length": len(openai_key) if openai_key else 0,
-        "openai_key_preview": openai_key[:8] + "..." + openai_key[-4:] if openai_key and len(openai_key) > 12 else "N/A",
-        "environment_vars": {
-            "OPENAI_MODEL": os.getenv("OPENAI_MODEL", "not_set"),
-            "MAX_UPLOAD_MB": os.getenv("MAX_UPLOAD_MB", "not_set"),
-        }
+        "openai_model": DEFAULT_MODEL,
+        "max_upload_mb": MAX_UPLOAD_MB
     }
     
-    # Testar cliente OpenAI
     try:
-        from config import get_openai_client, validate_openai_config, DEFAULT_MODEL
-        
-        debug_info["config_module"] = "loaded"
-        debug_info["default_model"] = DEFAULT_MODEL
-        
-        # Tentar validar configuração
         validate_openai_config()
-        debug_info["openai_validation"] = "success"
+        debug_info["config_validation"] = "success"
         
-        # Tentar obter cliente
-        client = get_openai_client()
-        debug_info["openai_client"] = "created" if client else "failed"
-        
-        if client:
-            # Testar uma requisição simples
-            try:
-                response = client.chat.completions.create(
-                    model=DEFAULT_MODEL,
-                    messages=[{"role": "user", "content": "Test"}],
-                    max_tokens=5,
-                    timeout=10
-                )
-                debug_info["openai_test"] = "success"
-                debug_info["test_response"] = response.choices[0].message.content[:50] if response.choices else "no_response"
-            except Exception as e:
-                debug_info["openai_test"] = f"failed: {str(e)}"
+        success, message = test_openai_connection()
+        debug_info["connection_test"] = "success" if success else "failed"
+        debug_info["test_message"] = message
         
     except Exception as e:
         debug_info["config_error"] = str(e)
-        debug_info["config_traceback"] = traceback.format_exc()
     
     return JSONResponse(debug_info)
 
@@ -162,214 +147,119 @@ async def translate(
     logger.info(f"Iniciando tradução: {len(files)} arquivo(s)")
     
     if not files:
-        raise HTTPException(status_code=400, detail="Nenhum arquivo enviado.")
+        raise HTTPException(status_code=400, detail="Nenhum arquivo enviado")
     
-    # Verificar se OpenAI API key está configurada
-    openai_key = os.getenv("OPENAI_API_KEY")
-    if not openai_key:
-        logger.error("OPENAI_API_KEY não configurada")
-        raise HTTPException(
-            status_code=500, 
-            detail="Chave da OpenAI não configurada. Configure OPENAI_API_KEY."
-        )
-    
-    logger.info(f"OpenAI API Key configurada: {'*' * (len(openai_key) - 8) + openai_key[-8:] if len(openai_key) > 8 else '***'}")
-    
-    # Testar configuração do OpenAI
+    # Validar configuração OpenAI
     try:
-        from config import validate_openai_config, get_openai_client, DEFAULT_MODEL
-        
-        logger.info(f"Tentando validar configuração OpenAI...")
-        logger.info(f"Modelo padrão: {DEFAULT_MODEL}")
-        
-        # Primeira validação - chave presente
         validate_openai_config()
-        logger.info("✅ Validação inicial OpenAI passou")
-        
-        # Segunda validação - cliente funcional
-        client = get_openai_client()
-        if not client:
-            raise ValueError("Cliente OpenAI não foi inicializado corretamente")
-        
-        logger.info("✅ Cliente OpenAI criado com sucesso")
-        
-        # Terceira validação - teste de conectividade
-        test_response = client.chat.completions.create(
-            model=DEFAULT_MODEL,
-            messages=[{"role": "user", "content": "Test"}],
-            max_tokens=5,
-            timeout=15
-        )
-        
-        logger.info("✅ Teste de conectividade OpenAI passou")
-        logger.info("Configuração OpenAI totalmente validada")
-        
+        logger.info("✅ Configuração OpenAI validada")
     except Exception as e:
-        error_msg = str(e)
-        logger.error(f"❌ Erro na validação OpenAI: {error_msg}")
-        logger.error(f"Tipo do erro: {type(e).__name__}")
-        logger.error(f"Traceback: {traceback.format_exc()}")
-        
-        # Mensagens de erro mais específicas
-        if "OPENAI_API_KEY" in error_msg:
-            detail = "Chave da OpenAI não configurada ou inválida. Verifique a variável OPENAI_API_KEY."
-        elif "timeout" in error_msg.lower():
-            detail = f"Timeout na conexão com OpenAI. Verifique sua conexão. Erro: {error_msg}"
-        elif "rate_limit" in error_msg.lower():
-            detail = f"Limite de taxa da OpenAI excedido. Aguarde alguns minutos. Erro: {error_msg}"
-        elif "authentication" in error_msg.lower() or "invalid" in error_msg.lower():
-            detail = f"Chave OpenAI inválida ou sem permissões adequadas. Erro: {error_msg}"
-        elif "model" in error_msg.lower():
-            detail = f"Modelo {DEFAULT_MODEL} não disponível ou sem acesso. Erro: {error_msg}"
-        else:
-            detail = f"Erro na configuração OpenAI: {error_msg}"
-        
+        logger.error(f"❌ Erro na configuração OpenAI: {e}")
         raise HTTPException(
             status_code=500,
-            detail=detail
+            detail=f"Erro na configuração OpenAI: {str(e)}"
         )
     
     model = PROFILE_MAP.get(perfil, PROFILE_MAP["normal"])
-    usar_ia = True
     
     # Criar diretório de trabalho
     job_id = uuid.uuid4().hex
     workdir = DATA_DIR / f"job_{job_id}"
     workdir.mkdir(parents=True, exist_ok=True)
     
-    logger.info(f"Criado diretório de trabalho: {workdir}")
-    
-    gloss_path = None
-    
     try:
-        # Processar glossário se fornecido
-        if glossario and glossario.filename:
-            gloss_content = await glossario.read()
-            if len(gloss_content) > 0:
-                gloss_path = str(workdir / "glossario.xlsx")
-                with open(gloss_path, "wb") as g:
-                    g.write(gloss_content)
-                logger.info(f"Glossário salvo: {gloss_path}")
-        
         outputs = []
         total_size = 0
         processed_files = []
         
-        # Processar cada arquivo
+        # Processar arquivos
         for i, file in enumerate(files):
             if not file.filename:
                 continue
-                
-            logger.info(f"Processando arquivo {i+1}/{len(files)}: {file.filename}")
             
-            # Ler conteúdo do arquivo
-            chunk = await file.read()
-            total_size += len(chunk)
+            logger.info(f"Processando {i+1}/{len(files)}: {file.filename}")
             
-            # Verificar tamanho total
+            # Ler arquivo
+            content = await file.read()
+            total_size += len(content)
+            
             if total_size > MAX_UPLOAD_MB * 1024 * 1024:
                 raise HTTPException(
-                    status_code=413, 
-                    detail=f"Tamanho total excede {MAX_UPLOAD_MB}MB."
+                    status_code=413,
+                    detail=f"Tamanho excede {MAX_UPLOAD_MB}MB"
                 )
             
-            # Validar tipo do arquivo
-            if not validate_file_type(chunk, file.filename):
+            # Validar tipo
+            if not validate_file_type(content, file.filename):
                 raise HTTPException(
-                    status_code=400, 
-                    detail=f"Tipo de arquivo não suportado: {file.filename}. Apenas DOCX, PPTX e XLSX são aceitos."
+                    status_code=400,
+                    detail=f"Tipo não suportado: {file.filename}"
                 )
             
-            # Salvar arquivo de entrada
-            name = file.filename
-            inp = workdir / name
-            with open(inp, "wb") as w:
-                w.write(chunk)
+            # Salvar arquivo original
+            input_file = workdir / file.filename
+            with open(input_file, "wb") as f:
+                f.write(content)
             
-            # Definir arquivo de saída
-            base, ext = os.path.splitext(name)
-            # Sanitizar nome do arquivo
+            # Arquivo de saída
+            base, ext = os.path.splitext(file.filename)
             safe_base = "".join(c for c in base if c.isalnum() or c in (' ', '-', '_')).rstrip()
-            outp = workdir / f"{safe_base}_traduzido{ext}"
+            output_file = workdir / f"{safe_base}_traduzido{ext}"
             
-            # Traduzir arquivo
-            logger.info(f"Iniciando tradução profissional: {inp} -> {outp}")
-            logger.info(f"Parâmetros: origem={idioma_origem}, destino={idioma_destino}, modelo={model}")
-            
-            try:
-                translation_result = translate_file_professional(
-                    str(inp), 
-                    str(outp), 
-                    gloss_path, 
-                    usar_ia, 
-                    idioma_origem, 
-                    idioma_destino, 
-                    model=model
-                )
-                
-                logger.info(f"Resultado da tradução: success={translation_result.success}")
-                logger.info(f"Elementos: {translation_result.translated_elements}/{translation_result.original_elements}")
-                
-                if translation_result.errors:
-                    logger.error(f"Erros encontrados: {translation_result.errors}")
-                    
-                if translation_result.warnings:
-                    logger.warning(f"Avisos: {translation_result.warnings}")
-                    
-            except Exception as e:
-                logger.error(f"EXCEÇÃO durante tradução de {file.filename}: {type(e).__name__}: {str(e)}")
-                logger.error(f"Traceback completo:", exc_info=True)
-                continue
+            # Traduzir
+            logger.info(f"Traduzindo: {input_file} -> {output_file}")
+            translation_result = translate_file_professional(
+                str(input_file),
+                str(output_file),
+                None,  # glossário
+                True,  # usar IA
+                idioma_origem,
+                idioma_destino,
+                model
+            )
             
             if not translation_result.success:
-                logger.error(f"Tradução falhou para {file.filename}: {translation_result.errors}")
-                # Se falhar, retornar erro para o frontend
+                logger.error(f"Falha na tradução: {translation_result.errors}")
                 raise HTTPException(
                     status_code=500,
                     detail=f"Falha na tradução de {file.filename}: {'; '.join(translation_result.errors)}"
                 )
-                
-            # Verificar se arquivo de saída foi criado
-            if not os.path.exists(outp):
-                logger.error(f"Arquivo de saída não foi criado: {outp}")
+            
+            if not os.path.exists(output_file):
                 raise HTTPException(
                     status_code=500,
-                    detail=f"Arquivo traduzido não foi criado para {file.filename}"
+                    detail=f"Arquivo traduzido não foi criado: {file.filename}"
                 )
             
-            outputs.append(str(outp))
+            outputs.append(str(output_file))
             processed_files.append({
                 "original": file.filename,
                 "translated": f"{safe_base}_traduzido{ext}",
-                "size": len(chunk),
+                "size": len(content),
                 "original_elements": translation_result.original_elements,
                 "translated_elements": translation_result.translated_elements,
-                "processing_time": translation_result.processing_time,
-                "warnings": translation_result.warnings
+                "processing_time": translation_result.processing_time
             })
-            logger.info(f"Tradução concluída: {translation_result.translated_elements}/{translation_result.original_elements} elementos em {translation_result.processing_time:.2f}s")
+            
+            logger.info(f"✅ Traduzido: {translation_result.translated_elements}/{translation_result.original_elements} elementos")
         
-        # Verificar se pelo menos um arquivo foi processado
         if not outputs:
-            logger.error("Nenhum arquivo foi processado com sucesso")
             raise HTTPException(
                 status_code=500,
-                detail="Nenhum arquivo pôde ser traduzido. Verifique os logs para mais detalhes."
+                detail="Nenhum arquivo foi processado com sucesso"
             )
-            
-        logger.info(f"Processamento concluído: {len(outputs)} arquivo(s) traduzido(s)")
         
-        # Criar arquivo ZIP com os resultados
+        # Criar ZIP
         zip_path = workdir / "documentos_traduzidos.zip"
         with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as z:
-            for p in outputs:
-                if os.path.exists(p):
-                    z.write(p, arcname=os.path.basename(p))
+            for file_path in outputs:
+                if os.path.exists(file_path):
+                    z.write(file_path, arcname=os.path.basename(file_path))
         
-        # Gerar token de download
+        # Token de download
         token = uuid.uuid4().hex
-        LINKS[token] = {
-            "path": str(zip_path), 
+        DOWNLOAD_LINKS[token] = {
+            "path": str(zip_path),
             "expire": time.time() + 2 * 60 * 60,  # 2 horas
             "files_count": len(outputs),
             "files": processed_files,
@@ -378,10 +268,10 @@ async def translate(
             "created_at": time.time()
         }
         
-        # Agendar limpeza de arquivos antigos
+        # Limpeza
         background_tasks.add_task(cleanup_old_files)
         
-        logger.info(f"Tradução concluída com sucesso. Token: {token}")
+        logger.info(f"✅ Tradução concluída. Token: {token}")
         
         return JSONResponse({
             "success": True,
@@ -389,55 +279,46 @@ async def translate(
             "files_count": len(outputs),
             "total_size_mb": round(total_size / (1024 * 1024), 2),
             "files": processed_files,
-            "processing_summary": {
-                "total_elements_original": sum(f.get("original_elements", 0) for f in processed_files),
-                "total_elements_translated": sum(f.get("translated_elements", 0) for f in processed_files),
-                "total_processing_time": sum(f.get("processing_time", 0) for f in processed_files),
-                "files_with_warnings": len([f for f in processed_files if f.get("warnings")])
-            },
-            "message": "Tradução profissional concluída com validação de integridade"
+            "message": "Tradução concluída com sucesso"
         })
         
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Erro durante tradução: {str(e)}")
+        logger.error(f"Erro durante tradução: {e}")
         logger.error(f"Traceback: {traceback.format_exc()}")
         raise HTTPException(
-            status_code=500, 
-            detail=f"Erro interno do servidor: {str(e)}"
+            status_code=500,
+            detail=f"Erro interno: {str(e)}"
         )
 
 @app.get("/api/download/{token}")
 def download(token: str):
     """Download de arquivos traduzidos"""
-    info = LINKS.get(token)
+    info = DOWNLOAD_LINKS.get(token)
     if not info:
-        logger.warning(f"Tentativa de download com token inválido: {token}")
-        raise HTTPException(status_code=404, detail="Link inválido ou expirado.")
+        raise HTTPException(status_code=404, detail="Link inválido ou expirado")
     
     if time.time() > info["expire"]:
-        # Remover arquivo expirado
         try:
             os.remove(info["path"])
         except Exception:
             pass
-        LINKS.pop(token, None)
-        logger.info(f"Token expirado removido: {token}")
-        raise HTTPException(status_code=410, detail="Link expirado.")
+        DOWNLOAD_LINKS.pop(token, None)
+        raise HTTPException(status_code=410, detail="Link expirado")
     
-    logger.info(f"Download iniciado para token: {token}")
+    logger.info(f"Download iniciado: {token}")
     
     return FileResponse(
-        info["path"], 
+        info["path"],
         filename="documentos_traduzidos.zip",
         media_type="application/zip"
     )
 
 @app.get("/api/status/{token}")
 def get_status(token: str):
-    """Verifica status de um token de download"""
-    info = LINKS.get(token)
+    """Status de um token"""
+    info = DOWNLOAD_LINKS.get(token)
     if not info:
         return JSONResponse({"status": "not_found"})
     
@@ -450,28 +331,9 @@ def get_status(token: str):
         "files": info.get("files", []),
         "expires_in": int(info["expire"] - time.time()),
         "source_lang": info.get("source_lang"),
-        "target_lang": info.get("target_lang"),
-        "created_at": info.get("created_at")
-    })
-
-@app.get("/api/languages")
-def get_languages():
-    """Retorna lista de idiomas suportados"""
-    return JSONResponse({
-        "languages": [
-            {"code": "pt-br", "name": "Português do Brasil"},
-            {"code": "pt-pt", "name": "Português de Portugal"},
-            {"code": "en", "name": "Inglês"},
-            {"code": "es", "name": "Espanhol"},
-            {"code": "es-bo", "name": "Espanhol (Bolívia)"},
-            {"code": "es-co", "name": "Espanhol (Colômbia)"},
-            {"code": "es-mx", "name": "Espanhol (México)"},
-            {"code": "fr", "name": "Francês"},
-            {"code": "it", "name": "Italiano"},
-            {"code": "de", "name": "Alemão"}
-        ]
+        "target_lang": info.get("target_lang")
     })
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    uvicorn.run(app, host="0.0.0.0", port=8001)

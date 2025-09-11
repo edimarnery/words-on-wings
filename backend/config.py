@@ -57,22 +57,34 @@ def get_openai_client():
 
 def validate_openai_config():
     """Valida configuração OpenAI"""
+    logger.info("🔍 Validando configuração OpenAI...")
+    
     if not OPENAI_API_KEY:
+        logger.error("❌ OPENAI_API_KEY não configurada")
         raise ValueError("OPENAI_API_KEY não configurada")
+    
+    logger.info(f"✅ OPENAI_API_KEY configurada: {OPENAI_API_KEY[:10]}...{OPENAI_API_KEY[-6:]}")
     
     client = get_openai_client()
     if not client:
+        logger.error("❌ Cliente OpenAI não inicializado")
         raise ValueError("Cliente OpenAI não inicializado")
     
+    logger.info("✅ Cliente OpenAI inicializado com sucesso")
     return True
 
 def test_openai_connection():
     """Testa conexão com OpenAI"""
+    logger.info("🌐 Testando conexão com OpenAI...")
+    
     try:
         client = get_openai_client()
         if not client:
+            logger.error("❌ Cliente não inicializado")
             return False, "Cliente não inicializado"
             
+        logger.info(f"🤖 Testando modelo: {DEFAULT_MODEL}")
+        
         # Teste simples
         response = client.chat.completions.create(
             model=DEFAULT_MODEL,
@@ -80,6 +92,11 @@ def test_openai_connection():
             max_tokens=5
         )
         
-        return True, f"Sucesso: {response.choices[0].message.content}"
+        result = response.choices[0].message.content
+        logger.info(f"✅ Teste de conexão bem-sucedido!")
+        logger.info(f"📝 Resposta do modelo: {result}")
+        
+        return True, f"Sucesso: {result}"
     except Exception as e:
+        logger.error(f"❌ Erro na conexão: {e}")
         return False, str(e)

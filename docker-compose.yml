@@ -15,13 +15,13 @@ services:
   # Backend Python
   backend:
     build: ./backend
-    ports:
-      - "8001:8001"
+    expose:
+      - "8000"
     environment:
       - OPENAI_API_KEY=${OPENAI_API_KEY}
       - MAX_UPLOAD_MB=300
-      - OPENAI_MODEL=gpt-4.1-2025-04-14
-      - MODEL_NORMAL=gpt-4.1-2025-04-14
+      - OPENAI_MODEL=gpt-5-2025-08-07
+      - MODEL_NORMAL=gpt-5-2025-08-07
       - MODEL_RAPIDO=gpt-5-mini-2025-08-07
     volumes:
       - ./backend/data:/app/data
@@ -30,7 +30,6 @@ services:
     restart: unless-stopped
     networks:
       - translator-network
-    command: uvicorn main:app --host 0.0.0.0 --port 8001 --workers 2
 
 networks:
   translator-network:

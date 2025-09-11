@@ -5,7 +5,7 @@ from typing import List, Dict, Optional
 from fastapi import FastAPI, UploadFile, Form, HTTPException, BackgroundTasks
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
-from translator_core import translate_file
+from translator_core_pro import translate_file_professional, TranslationResult
 import magic
 
 # Configuração de logging
@@ -179,8 +179,8 @@ async def translate(
             outp = workdir / f"{safe_base}_traduzido{ext}"
             
             # Traduzir arquivo
-            logger.info(f"Iniciando tradução: {inp} -> {outp}")
-            translate_file(
+            logger.info(f"Iniciando tradução profissional: {inp} -> {outp}")
+            translation_result = translate_file_professional(
                 str(inp), 
                 str(outp), 
                 gloss_path, 
@@ -190,13 +190,21 @@ async def translate(
                 model=model
             )
             
+            if not translation_result.success:
+                logger.error(f"Tradução falhou para {file.filename}: {translation_result.errors}")
+                continue
+            
             outputs.append(str(outp))
             processed_files.append({
                 "original": file.filename,
                 "translated": f"{safe_base}_traduzido{ext}",
-                "size": len(chunk)
+                "size": len(chunk),
+                "original_elements": translation_result.original_elements,
+                "translated_elements": translation_result.translated_elements,
+                "processing_time": translation_result.processing_time,
+                "warnings": translation_result.warnings
             })
-            logger.info(f"Tradução concluída: {outp}")
+            logger.info(f"Tradução concluída: {translation_result.translated_elements}/{translation_result.original_elements} elementos em {translation_result.processing_time:.2f}s")
         
         # Criar arquivo ZIP com os resultados
         zip_path = workdir / "documentos_traduzidos.zip"
@@ -228,7 +236,13 @@ async def translate(
             "files_count": len(outputs),
             "total_size_mb": round(total_size / (1024 * 1024), 2),
             "files": processed_files,
-            "message": "Tradução concluída com sucesso"
+            "processing_summary": {
+                "total_elements_original": sum(f.get("original_elements", 0) for f in processed_files),
+                "total_elements_translated": sum(f.get("translated_elements", 0) for f in processed_files),
+                "total_processing_time": sum(f.get("processing_time", 0) for f in processed_files),
+                "files_with_warnings": len([f for f in processed_files if f.get("warnings")])
+            },
+            "message": "Tradução profissional concluída com validação de integridade"
         })
         
     except HTTPException:

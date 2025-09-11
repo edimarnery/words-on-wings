@@ -1,6 +1,16 @@
 import { useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
 
+interface TranslationFile {
+  original: string;
+  translated: string;
+  size: number;
+  original_elements?: number;
+  translated_elements?: number;
+  processing_time?: number;
+  warnings?: string[];
+}
+
 interface TranslationJob {
   id: string;
   originalFileName: string;
@@ -10,11 +20,7 @@ interface TranslationJob {
   status: 'pending' | 'processing' | 'completed' | 'failed';
   translatedFileUrl?: string;
   createdAt: string;
-  files?: Array<{
-    original: string;
-    translated: string;
-    size: number;
-  }>;
+  files?: TranslationFile[];
 }
 
 const API_BASE = process.env.NODE_ENV === 'production' 

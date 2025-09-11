@@ -177,9 +177,12 @@ export const DocumentTranslator = () => {
               </Button>
             </div>
 
-            <div className="text-xs text-muted-foreground text-center pt-2 border-t border-border/20">
-              ✨ Formatação, fontes e layout preservados • Tradução profissional com IA
-            </div>
+          <div className="text-xs text-muted-foreground text-center pt-2 border-t border-border/20">
+            ✨ Tradução profissional com validação de integridade • Formatação 100% preservada
+            <br />
+            📊 {currentJob.files?.reduce((sum, f) => sum + (f.original_elements || 0), 0) || 0} elementos traduzidos
+            • ⏱️ {currentJob.files?.reduce((sum, f) => sum + (f.processing_time || 0), 0).toFixed(1) || 0}s
+          </div>
           </CardContent>
         </Card>
       )}

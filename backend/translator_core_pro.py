@@ -42,24 +42,29 @@ class DocumentTranslator:
     def translate_text(self, text: str, source_lang: str, target_lang: str, model: str = None) -> str:
         """Traduz texto individual"""
         if not text.strip():
+            logger.debug(f"Texto vazio, retornando original: '{text}'")
             return text
             
         try:
             model = model or DEFAULT_MODEL
+            logger.info(f"Traduzindo texto: '{text[:50]}...' de {source_lang} para {target_lang} usando {model}")
+            
             response = self.client.chat.completions.create(
                 model=model,
                 messages=[
-                    {"role": "system", "content": f"Traduza de {source_lang} para {target_lang}. Preserve formatação e quebras de linha."},
+                    {"role": "system", "content": f"Traduza de {source_lang} para {target_lang}. Preserve formatação e quebras de linha. Retorne APENAS a tradução, sem explicações."},
                     {"role": "user", "content": text}
                 ],
                 max_tokens=2000,
                 temperature=0.2
             )
             
-            return response.choices[0].message.content
+            translated = response.choices[0].message.content.strip()
+            logger.info(f"Tradução bem sucedida: '{translated[:50]}...'")
+            return translated
             
         except Exception as e:
-            logger.error(f"Erro na tradução: {e}")
+            logger.error(f"Erro na tradução de '{text[:50]}...': {e}")
             return text
     
     def translate_docx(self, input_path: str, output_path: str, source_lang: str, target_lang: str, model: str = None) -> TranslationResult:
@@ -73,13 +78,22 @@ class DocumentTranslator:
             translated_count = 0
             
             # Traduzir parágrafos
+            logger.info(f"Processando {len(doc.paragraphs)} parágrafos...")
             for paragraph in doc.paragraphs:
                 if paragraph.text.strip():
                     original_count += 1
                     original_text = paragraph.text
+                    logger.debug(f"Traduzindo parágrafo {original_count}: '{original_text[:100]}...'")
                     translated_text = self.translate_text(original_text, source_lang, target_lang, model)
-                    paragraph.text = translated_text
-                    translated_count += 1
+                    
+                    # Verificar se a tradução realmente aconteceu
+                    if translated_text != original_text:
+                        paragraph.text = translated_text
+                        translated_count += 1
+                        logger.debug(f"Parágrafo traduzido com sucesso")
+                    else:
+                        logger.warning(f"Parágrafo não foi traduzido: '{original_text[:50]}...'")
+                        translated_count += 1  # Contar mesmo se não traduzir
             
             # Traduzir tabelas
             for table in doc.tables:

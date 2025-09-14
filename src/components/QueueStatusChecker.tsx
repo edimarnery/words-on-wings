@@ -15,8 +15,8 @@ interface QueueJob {
   translatedFiles?: string[];
   sourceLang: string;
   targetLang: string;
-  createdAt: string;
-  expiresAt: string;
+  createdAt: number;
+  expiresAt: number;
   downloadUrl?: string;
   error?: string;
 }
@@ -164,8 +164,8 @@ export const QueueStatusChecker = () => {
                   <div>ID: <code className="bg-muted px-1 rounded">{jobInfo.id}</code></div>
                   <div>Idioma: {jobInfo.sourceLang} → {jobInfo.targetLang}</div>
                   <div>Arquivos: {jobInfo.originalFiles.length}</div>
-                  <div>Criado: {new Date(jobInfo.createdAt).toLocaleString()}</div>
-                  <div>Expira: {new Date(jobInfo.expiresAt).toLocaleString()}</div>
+                  <div>Criado: {new Date(jobInfo.createdAt * 1000).toLocaleString('pt-BR')}</div>
+                  <div>Expira: {new Date(jobInfo.expiresAt * 1000).toLocaleString('pt-BR')}</div>
                 </div>
               </div>
               

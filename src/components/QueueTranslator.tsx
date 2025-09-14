@@ -44,13 +44,36 @@ export const QueueTranslator = () => {
     }
   };
 
-  const copyJobId = () => {
+  const copyJobId = async () => {
     if (currentJobId) {
-      navigator.clipboard.writeText(currentJobId);
-      toast({
-        title: "ID copiado!",
-        description: "O ID da tradução foi copiado para a área de transferência.",
-      });
+      try {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          await navigator.clipboard.writeText(currentJobId);
+        } else {
+          // Fallback para navegadores que não suportam clipboard API
+          const textArea = document.createElement('textarea');
+          textArea.value = currentJobId;
+          textArea.style.position = 'fixed';
+          textArea.style.left = '-999999px';
+          textArea.style.top = '-999999px';
+          document.body.appendChild(textArea);
+          textArea.focus();
+          textArea.select();
+          document.execCommand('copy');
+          document.body.removeChild(textArea);
+        }
+        
+        toast({
+          title: "ID copiado!",
+          description: "O ID da tradução foi copiado para a área de transferência.",
+        });
+      } catch (error) {
+        toast({
+          title: "Erro ao copiar",
+          description: "Não foi possível copiar o ID. Selecione e copie manualmente.",
+          variant: "destructive",
+        });
+      }
     }
   };
 

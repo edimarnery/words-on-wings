@@ -18,6 +18,8 @@ from fastapi import FastAPI, UploadFile, Form, HTTPException, BackgroundTasks
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from translator_core_pro import translate_file_professional, TranslationResult
+from queue_manager import queue_manager, JobStatus
+from queue_scheduler import scheduler
 from config import validate_openai_config, get_openai_client, DEFAULT_MODEL, test_openai_connection
 import magic
 
@@ -104,12 +106,17 @@ app = FastAPI(
 def check_openai_startup():
     """Verifica OpenAI no startup para evitar 500 errors"""
     try:
+        logger.info("🚀 Iniciando Brazil Translations API...")
         logger.info("🧪 Testando conexão OpenAI no startup...")
         validate_openai_config()
         client = get_openai_client()
         if client:
             # Teste rápido para verificar se não há problemas de configuração
             logger.info("✅ Cliente OpenAI inicializado com sucesso")
+            
+            # Iniciar scheduler de limpeza
+            scheduler.start()
+            logger.info("✅ Serviços inicializados")
         else:
             logger.error("❌ Cliente OpenAI não pôde ser inicializado")
             raise SystemExit(1)
@@ -123,6 +130,13 @@ def check_openai_startup():
     except Exception as e:
         logger.error(f"❌ Erro na configuração OpenAI no startup: {e}")
         raise SystemExit(1)
+
+@app.on_event("shutdown")
+def shutdown_cleanup():
+    """Finalizar serviços no encerramento"""
+    logger.info("🛑 Encerrando Brazil Translations API...")
+    scheduler.stop()
+    logger.info("✅ Serviços finalizados")
 
 # CORS
 app.add_middleware(
@@ -412,6 +426,251 @@ def get_status(token: str):
         "source_lang": info.get("source_lang"),
         "target_lang": info.get("target_lang")
     })
+
+# ======== ENDPOINTS DO SISTEMA DE FILA ========
+
+@app.post("/api/queue/submit")
+async def submit_to_queue(
+    background_tasks: BackgroundTasks,
+    files: List[UploadFile],
+    sourceLang: str = Form(...),
+    targetLang: str = Form(...),
+    glossary: Optional[UploadFile] = None
+):
+    """Adiciona uma tradução à fila de processamento"""
+    logger.info(f"Enviando para fila: {len(files)} arquivo(s)")
+    
+    if not files:
+        raise HTTPException(status_code=400, detail="Nenhum arquivo enviado")
+    
+    # Validar configuração OpenAI
+    try:
+        validate_openai_config()
+    except Exception as e:
+        logger.error(f"❌ Erro na configuração OpenAI: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Erro na configuração OpenAI: {str(e)}"
+        )
+    
+    # Criar diretório de trabalho
+    job_id = uuid.uuid4().hex[:12]
+    workdir = DATA_DIR / f"queue_job_{job_id}"
+    workdir.mkdir(parents=True, exist_ok=True)
+    
+    try:
+        original_files = []
+        file_paths = {}
+        total_size = 0
+        
+        # Processar e salvar arquivos
+        for i, file in enumerate(files):
+            if not file.filename:
+                continue
+            
+            logger.info(f"Salvando {i+1}/{len(files)}: {file.filename}")
+            
+            # Ler arquivo
+            content = await file.read()
+            total_size += len(content)
+            
+            if total_size > MAX_UPLOAD_MB * 1024 * 1024:
+                raise HTTPException(
+                    status_code=413,
+                    detail=f"Tamanho excede {MAX_UPLOAD_MB}MB"
+                )
+            
+            # Validar tipo
+            if not validate_file_type(content, file.filename):
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Tipo não suportado: {file.filename}"
+                )
+            
+            # Salvar arquivo
+            input_file = workdir / file.filename
+            with open(input_file, "wb") as f:
+                f.write(content)
+            
+            original_files.append(file.filename)
+            file_paths[file.filename] = str(input_file)
+        
+        # Adicionar à fila
+        queue_job_id = queue_manager.add_job(
+            source_lang=sourceLang,
+            target_lang=targetLang,
+            original_files=original_files,
+            file_paths=file_paths
+        )
+        
+        # Programar processamento
+        background_tasks.add_task(process_queue_job, queue_job_id)
+        
+        # Buscar job para retornar informações
+        job = queue_manager.get_job(queue_job_id)
+        
+        logger.info(f"✅ Job {queue_job_id} adicionado à fila")
+        
+        return JSONResponse({
+            "success": True,
+            "jobId": queue_job_id,
+            "position": job.position,
+            "estimatedTime": job.estimated_time,
+            "message": f"Tradução adicionada à fila. Posição: {job.position}"
+        })
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Erro ao adicionar à fila: {e}")
+        logger.error(f"Traceback: {traceback.format_exc()}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Erro interno: {str(e)}"
+        )
+
+@app.get("/api/queue/status/{job_id}")
+def get_queue_status(job_id: str):
+    """Consulta o status de um job na fila"""
+    job = queue_manager.get_job(job_id)
+    
+    if not job:
+        raise HTTPException(status_code=404, detail="Job não encontrado")
+    
+    # Verificar se expirou
+    if time.time() > job.expires_at:
+        raise HTTPException(status_code=410, detail="Job expirado")
+    
+    return JSONResponse({
+        "id": job.id,
+        "status": job.status.value,
+        "position": job.position if job.status == JobStatus.PENDING else None,
+        "estimatedTime": job.estimated_time if job.status == JobStatus.PENDING else None,
+        "originalFiles": job.original_files,
+        "translatedFiles": job.translated_files or [],
+        "sourceLang": job.source_lang,
+        "targetLang": job.target_lang,
+        "createdAt": job.created_at,
+        "expiresAt": job.expires_at,
+        "downloadUrl": f"/api/queue/download/{job.id}" if job.status == JobStatus.COMPLETED else None,
+        "error": job.error_message
+    })
+
+@app.get("/api/queue/download/{job_id}")
+def download_queue_result(job_id: str):
+    """Download do resultado de um job da fila"""
+    job = queue_manager.get_job(job_id)
+    
+    if not job:
+        raise HTTPException(status_code=404, detail="Job não encontrado")
+    
+    if job.status != JobStatus.COMPLETED:
+        raise HTTPException(status_code=400, detail="Tradução ainda não concluída")
+    
+    if time.time() > job.expires_at:
+        raise HTTPException(status_code=410, detail="Download expirado")
+    
+    # Buscar arquivo ZIP
+    workdir = DATA_DIR / f"queue_job_{job_id}"
+    zip_path = workdir / "documentos_traduzidos.zip"
+    
+    if not zip_path.exists():
+        raise HTTPException(status_code=404, detail="Arquivo não encontrado")
+    
+    logger.info(f"Download do job da fila: {job_id}")
+    
+    return FileResponse(
+        zip_path,
+        filename=f"traducao_{job_id}.zip",
+        media_type="application/zip"
+    )
+
+@app.get("/api/queue/stats")
+def get_queue_stats():
+    """Estatísticas da fila"""
+    stats = queue_manager.get_queue_stats()
+    return JSONResponse(stats)
+
+async def process_queue_job(job_id: str):
+    """Processa um job da fila em background"""
+    logger.info(f"Iniciando processamento do job {job_id}")
+    
+    # Atualizar status para processando
+    queue_manager.update_job_status(job_id, JobStatus.PROCESSING)
+    
+    job = queue_manager.get_job(job_id)
+    if not job:
+        logger.error(f"Job {job_id} não encontrado")
+        return
+    
+    workdir = DATA_DIR / f"queue_job_{job_id}"
+    
+    try:
+        outputs = []
+        translated_files = []
+        model = PROFILE_MAP.get("normal", DEFAULT_MODEL)
+        
+        # Processar cada arquivo
+        for filename in job.original_files:
+            logger.info(f"Processando arquivo: {filename}")
+            
+            input_file = workdir / filename
+            if not input_file.exists():
+                raise Exception(f"Arquivo não encontrado: {filename}")
+            
+            # Arquivo de saída
+            base, ext = os.path.splitext(filename)
+            safe_base = "".join(c for c in base if c.isalnum() or c in (' ', '-', '_')).rstrip()
+            output_file = workdir / f"{safe_base}_traduzido{ext}"
+            
+            # Traduzir
+            translation_result = translate_file_professional(
+                str(input_file),
+                str(output_file),
+                None,  # glossário
+                True,  # usar IA
+                job.source_lang,
+                job.target_lang,
+                model
+            )
+            
+            if not translation_result.success:
+                raise Exception(f"Falha na tradução de {filename}: {'; '.join(translation_result.errors)}")
+            
+            if not output_file.exists():
+                raise Exception(f"Arquivo traduzido não foi criado: {filename}")
+            
+            outputs.append(str(output_file))
+            translated_files.append(f"{safe_base}_traduzido{ext}")
+            
+            logger.info(f"✅ Traduzido: {translation_result.translated_elements}/{translation_result.original_elements} elementos")
+        
+        # Criar ZIP
+        zip_path = workdir / "documentos_traduzidos.zip"
+        with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as z:
+            for file_path in outputs:
+                if os.path.exists(file_path):
+                    z.write(file_path, arcname=os.path.basename(file_path))
+        
+        # Atualizar status para concluído
+        queue_manager.update_job_status(
+            job_id, 
+            JobStatus.COMPLETED,
+            translated_files=translated_files
+        )
+        
+        logger.info(f"✅ Job {job_id} processado com sucesso")
+        
+    except Exception as e:
+        logger.error(f"❌ Erro ao processar job {job_id}: {e}")
+        logger.error(f"Traceback: {traceback.format_exc()}")
+        
+        # Atualizar status para erro
+        queue_manager.update_job_status(
+            job_id, 
+            JobStatus.ERROR,
+            error_message=str(e)
+        )
 
 if __name__ == "__main__":
     import uvicorn

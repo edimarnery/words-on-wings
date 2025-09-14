@@ -7,6 +7,8 @@ import { LanguageSelector } from "@/components/LanguageSelector";
 import { TranslateBox } from "@/components/TranslateBox";
 import { TranslationHistory, Translation } from "@/components/TranslationHistory";
 import { DocumentTranslator } from "@/components/DocumentTranslator";
+import { QueueTranslator } from "@/components/QueueTranslator";
+import { QueueStatusChecker } from "@/components/QueueStatusChecker";
 import heroImage from "@/assets/hero-translation.jpg";
 
 const Index = () => {
@@ -103,9 +105,11 @@ const Index = () => {
         <div className="container mx-auto px-4">
           <div className="max-w-6xl mx-auto">
             <Tabs defaultValue="text" className="w-full">
-              <TabsList className="grid w-full grid-cols-2 mb-8 max-w-md mx-auto bg-white/80 backdrop-blur-sm shadow-lg border-0">
+              <TabsList className="grid w-full grid-cols-4 mb-8 max-w-4xl mx-auto bg-white/80 backdrop-blur-sm shadow-lg border-0">
                 <TabsTrigger value="text" className="data-[state=active]:bg-blue-500 data-[state=active]:text-white transition-all duration-300">Tradução de Texto</TabsTrigger>
-                <TabsTrigger value="document" className="data-[state=active]:bg-blue-500 data-[state=active]:text-white transition-all duration-300">Tradução de Documentos</TabsTrigger>
+                <TabsTrigger value="document" className="data-[state=active]:bg-blue-500 data-[state=active]:text-white transition-all duration-300">Tradução Direta</TabsTrigger>
+                <TabsTrigger value="queue" className="data-[state=active]:bg-blue-500 data-[state=active]:text-white transition-all duration-300">Fila de Tradução</TabsTrigger>
+                <TabsTrigger value="status" className="data-[state=active]:bg-blue-500 data-[state=active]:text-white transition-all duration-300">Consultar Status</TabsTrigger>
               </TabsList>
 
               <TabsContent value="text" className="space-y-6">
@@ -201,6 +205,18 @@ const Index = () => {
                   <DocumentTranslator />
                 </div>
               </TabsContent>
+
+              <TabsContent value="queue">
+                <div className="bg-white/90 backdrop-blur-sm rounded-2xl shadow-xl border border-white/50 p-8 animate-fade-in">
+                  <QueueTranslator />
+                </div>
+              </TabsContent>
+
+              <TabsContent value="status">
+                <div className="bg-white/90 backdrop-blur-sm rounded-2xl shadow-xl border border-white/50 p-8 animate-fade-in">
+                  <QueueStatusChecker />
+                </div>
+              </TabsContent>
             </Tabs>
           </div>
         </div>
@@ -222,6 +238,8 @@ const Index = () => {
           </p>
           <div className="flex justify-center space-x-6 text-sm text-gray-400">
             <span>Powered by Advanced AI</span>
+            <span>•</span>
+            <span>Sistema de Fila</span>
             <span>•</span>
             <span>Seguro e Privado</span>
             <span>•</span>

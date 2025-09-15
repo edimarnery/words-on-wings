@@ -18,7 +18,9 @@ logger.info(f"openai={getattr(openai_pkg,'__version__','?')} httpx={getattr(http
 
 # Configurações principais
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
-DEFAULT_MODEL = os.getenv("OPENAI_MODEL", "gpt-4.1-2025-04-14")
+DEFAULT_MODEL = os.getenv("OPENAI_MODEL", "gpt-4.1")
+MODEL_RAPIDO = os.getenv("MODEL_RAPIDO", "o4-mini")
+BATCH_TOKEN_BUDGET = int(os.getenv("BATCH_TOKEN_BUDGET", "80000"))
 MAX_UPLOAD_MB = int(os.getenv("MAX_UPLOAD_MB", "300"))
 
 # Cliente global único

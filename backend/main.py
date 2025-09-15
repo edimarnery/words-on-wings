@@ -18,6 +18,7 @@ from fastapi import FastAPI, UploadFile, Form, HTTPException, BackgroundTasks
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from translator_core_pro import translate_file_professional, TranslationResult
+from translator_openai_official import translate_docx_professional
 from queue_manager import queue_manager, JobStatus
 from queue_scheduler import scheduler
 from config import validate_openai_config, get_openai_client, DEFAULT_MODEL, test_openai_connection
@@ -37,8 +38,8 @@ logger = logging.getLogger(__name__)
 # Configurações
 MAX_UPLOAD_MB = int(os.getenv("MAX_UPLOAD_MB", "300"))
 PROFILE_MAP = {
-    "normal": "gpt-5-2025-08-07",     # Modelo mais inteligente para traduções precisas
-    "rapido": "gpt-5-mini-2025-08-07",  # Versão mais rápida e eficiente
+    "normal": "gpt-4.1",     # Modelo oficial OpenAI para traduções precisas
+    "rapido": "o4-mini",     # Versão oficial mais rápida e eficiente
 }
 
 # Diretórios
@@ -291,15 +292,27 @@ async def translate(
             
             # Traduzir
             logger.info(f"Traduzindo: {input_file} -> {output_file}")
-            translation_result = translate_file_professional(
-                str(input_file),
-                str(output_file),
-                None,  # glossário
-                True,  # usar IA
-                idioma_origem,
-                idioma_destino,
-                model
-            )
+            
+            # Usar novo tradutor oficial OpenAI para DOCX
+            if input_file.suffix.lower() == '.docx':
+                logger.info("Usando tradutor oficial OpenAI para DOCX")
+                translation_result = translate_docx_professional(
+                    str(input_file),
+                    str(output_file),
+                    idioma_origem,
+                    idioma_destino
+                )
+            else:
+                # Fallback para outros tipos
+                translation_result = translate_file_professional(
+                    str(input_file),
+                    str(output_file),
+                    None,  # glossário
+                    True,  # usar IA
+                    idioma_origem,
+                    idioma_destino,
+                    model
+                )
             
             if not translation_result.success:
                 logger.error(f"Falha na tradução: {translation_result.errors}")
@@ -315,16 +328,27 @@ async def translate(
                 )
             
             outputs.append(str(output_file))
+            
+            # Ajustar propriedades baseado no tipo de resultado
+            if hasattr(translation_result, 'translated_segments'):
+                # Novo tradutor OpenAI oficial
+                translated_count = translation_result.translated_segments
+                original_count = translation_result.translated_segments  # Para DOCX, segmentos = elementos
+            else:
+                # Tradutor tradicional
+                translated_count = translation_result.translated_elements
+                original_count = translation_result.original_elements
+            
             processed_files.append({
                 "original": file.filename,
                 "translated": f"{safe_base}_traduzido{ext}",
                 "size": len(content),
-                "original_elements": translation_result.original_elements,
-                "translated_elements": translation_result.translated_elements,
+                "original_elements": original_count,
+                "translated_elements": translated_count,
                 "processing_time": translation_result.processing_time
             })
             
-            logger.info(f"✅ Traduzido: {translation_result.translated_elements}/{translation_result.original_elements} elementos")
+            logger.info(f"✅ Traduzido: {translated_count} elementos em {translation_result.processing_time:.2f}s")
         
         if not outputs:
             raise HTTPException(

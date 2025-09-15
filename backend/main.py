@@ -37,8 +37,8 @@ logger = logging.getLogger(__name__)
 # Configurações
 MAX_UPLOAD_MB = int(os.getenv("MAX_UPLOAD_MB", "300"))
 PROFILE_MAP = {
-    "normal": "gpt-4.1-2025-04-14",
-    "rapido": "gpt-4.1-mini-2025-04-14",
+    "normal": "gpt-5-2025-08-07",     # Modelo mais inteligente para traduções precisas
+    "rapido": "gpt-5-mini-2025-08-07",  # Versão mais rápida e eficiente
 }
 
 # Diretórios
@@ -503,13 +503,13 @@ async def submit_to_queue(
             file_paths=file_paths
         )
         
-        # Programar processamento
-        background_tasks.add_task(process_queue_job, queue_job_id)
+        # Programar processamento - remover o background_tasks pois agora o scheduler processa
+        # background_tasks.add_task(process_queue_job, queue_job_id)
         
         # Buscar job para retornar informações
         job = queue_manager.get_job(queue_job_id)
         
-        logger.info(f"✅ Job {queue_job_id} adicionado à fila")
+        logger.info(f"✅ Job {queue_job_id} adicionado à fila - será processado pelo scheduler")
         
         return JSONResponse({
             "success": True,
@@ -592,8 +592,12 @@ def get_queue_stats():
     return JSONResponse(stats)
 
 async def process_queue_job(job_id: str):
-    """Processa um job da fila em background"""
-    logger.info(f"Iniciando processamento do job {job_id}")
+    """Processa um job da fila de tradução (versão async)"""
+    return process_queue_job_sync(job_id)
+
+def process_queue_job_sync(job_id: str):
+    """Processa um job da fila de tradução (versão síncrona)"""
+    logger.info(f"🔄 Iniciando processamento do job {job_id}")
     
     # Atualizar status para processando
     queue_manager.update_job_status(job_id, JobStatus.PROCESSING)
@@ -604,26 +608,35 @@ async def process_queue_job(job_id: str):
         return
     
     workdir = DATA_DIR / f"queue_job_{job_id}"
+    logger.info(f"📁 Diretório de trabalho: {workdir}")
     
     try:
         outputs = []
         translated_files = []
-        model = PROFILE_MAP.get("normal", DEFAULT_MODEL)
+        model = PROFILE_MAP.get("normal", "gpt-5-2025-08-07")  # Usar GPT-5 por padrão
+        
+        logger.info(f"🤖 Usando modelo: {model}")
         
         # Processar cada arquivo
         for filename in job.original_files:
-            logger.info(f"Processando arquivo: {filename}")
+            logger.info(f"📄 Processando arquivo: {filename}")
             
             input_file = workdir / filename
             if not input_file.exists():
+                logger.error(f"❌ Arquivo não encontrado: {input_file}")
                 raise Exception(f"Arquivo não encontrado: {filename}")
+            
+            logger.info(f"✅ Arquivo encontrado: {input_file} (tamanho: {input_file.stat().st_size} bytes)")
             
             # Arquivo de saída
             base, ext = os.path.splitext(filename)
             safe_base = "".join(c for c in base if c.isalnum() or c in (' ', '-', '_')).rstrip()
             output_file = workdir / f"{safe_base}_traduzido{ext}"
             
+            logger.info(f"📤 Arquivo de saída: {output_file}")
+            
             # Traduzir
+            logger.info(f"🔄 Iniciando tradução: {job.source_lang} → {job.target_lang}")
             translation_result = translate_file_professional(
                 str(input_file),
                 str(output_file),
@@ -635,10 +648,14 @@ async def process_queue_job(job_id: str):
             )
             
             if not translation_result.success:
-                raise Exception(f"Falha na tradução de {filename}: {'; '.join(translation_result.errors)}")
+                error_msg = f"Falha na tradução de {filename}: {'; '.join(translation_result.errors)}"
+                logger.error(f"❌ {error_msg}")
+                raise Exception(error_msg)
             
             if not output_file.exists():
-                raise Exception(f"Arquivo traduzido não foi criado: {filename}")
+                error_msg = f"Arquivo traduzido não foi criado: {filename}"
+                logger.error(f"❌ {error_msg}")
+                raise Exception(error_msg)
             
             outputs.append(str(output_file))
             translated_files.append(f"{safe_base}_traduzido{ext}")
@@ -647,10 +664,13 @@ async def process_queue_job(job_id: str):
         
         # Criar ZIP
         zip_path = workdir / "documentos_traduzidos.zip"
+        logger.info(f"📦 Criando arquivo ZIP: {zip_path}")
+        
         with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as z:
             for file_path in outputs:
                 if os.path.exists(file_path):
                     z.write(file_path, arcname=os.path.basename(file_path))
+                    logger.info(f"📁 Adicionado ao ZIP: {os.path.basename(file_path)}")
         
         # Atualizar status para concluído
         queue_manager.update_job_status(
@@ -659,7 +679,7 @@ async def process_queue_job(job_id: str):
             translated_files=translated_files
         )
         
-        logger.info(f"✅ Job {job_id} processado com sucesso")
+        logger.info(f"✅ Job {job_id} processado com sucesso!")
         
     except Exception as e:
         logger.error(f"❌ Erro ao processar job {job_id}: {e}")

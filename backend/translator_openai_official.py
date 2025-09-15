@@ -115,7 +115,7 @@ def montar_lotes(items: List[Dict], token_budget: int = BATCH_TOKEN_BUDGET) -> L
 
 def pedir_traducao_structured(lote: List[Dict], target_lang: str, source_lang: str = "auto") -> Dict[str, str]:
     """
-    Usa Responses API com Structured Outputs conforme orientações OpenAI
+    Usa Chat Completions API com Structured Outputs - método correto
     """
     client = OpenAI()
     
@@ -158,9 +158,12 @@ SEGMENTOS PARA TRADUZIR:
     # Retry com backoff exponencial
     for attempt in range(MAX_RETRIES):
         try:
-            response = client.responses.create(
+            response = client.chat.completions.create(
                 model=MODEL,
-                input=prompt,
+                messages=[
+                    {"role": "system", "content": "Você é um tradutor profissional especializado. Siga exatamente as instruções fornecidas."},
+                    {"role": "user", "content": prompt}
+                ],
                 response_format={
                     "type": "json_schema", 
                     "json_schema": {
@@ -169,10 +172,10 @@ SEGMENTOS PARA TRADUZIR:
                     }
                 },
                 temperature=0.1,  # Baixa para consistência
-                max_output_tokens=200000
+                max_tokens=200000
             )
             
-            result_json = json.loads(response.output_text)
+            result_json = json.loads(response.choices[0].message.content)
             return {item["id"]: item["translated_text"] for item in result_json["translations"]}
             
         except Exception as e:
